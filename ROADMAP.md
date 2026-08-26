@@ -13,7 +13,6 @@ Dois princípios guiam a ordem do trabalho:
 1. **Fundações primeiro.** A Sprint 1 entrega arquitetura, camada core (rede, WebSocket, storage), biblioteca de componentes e o harness de testes + CI. Sem isso, TDD nas features vira improviso.
 2. **Fatias verticais por prioridade.** Cada sprint seguinte entrega uma feature ponta-a-ponta (modelo → dados → estado → UI → testes), começando pelo núcleo P0 (auth, navegação, controle de dispositivos) e avançando para as telas secundárias.
 
-**Cadência sugerida:** sprints de 2 semanas, com planning, daily, review e retrospectiva. Papéis: Product Owner, Scrum Master e time de desenvolvimento (adaptável ao tamanho da equipe acadêmica).
 
 ---
 

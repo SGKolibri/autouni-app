@@ -1,0 +1,50 @@
+name: CI
+
+# Roda a cada Pull Request
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+
+# Cancela execuções antigas do mesmo PR quando um novo push chega
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint & Testes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      - name: Gerar código (freezed / json_serializable)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Checar formatação
+        # exclui os arquivos gerados do check de formato
+        run: >
+          dart format --output=none --set-exit-if-changed
+          $(find lib test -name '*.dart' ! -name '*.g.dart' ! -name '*.freezed.dart')
+
+      - name: Análise estática (lint)
+        run: flutter analyze
+
+      - name: Rodar testes com cobertura
+        run: flutter test --coverage
+
+      - name: Verificar limiar de cobertura
+        uses: VeryGoodOpenSource/very_good_coverage@v3
+        with:
+          path: coverage/lcov.info
+          min_coverage: 80

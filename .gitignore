@@ -33,6 +33,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Harness de testes: teste gerado pelo gate de cobertura e diffs de golden
+/test/_coverage_all_imports_test.dart
+/test/**/failures/
+
 # Symbolication related
 app.*.symbols
 

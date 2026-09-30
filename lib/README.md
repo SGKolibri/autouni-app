@@ -6,11 +6,13 @@ lib/
 ├── main_dev.dart        # entrypoint de desenvolvimento
 ├── main_prod.dart       # entrypoint de produção
 ├── bootstrap.dart       # monta o ProviderScope raiz + runApp
-├── app.dart             # AutoUniApp (MaterialApp + faixa de flavor)
+├── app.dart             # AutoUniApp (MaterialApp.router + tema + faixa de flavor)
 │
 ├── core/                # infraestrutura transversal, sem regra de negócio
-│   └── config/          # flavors, AppConfig, providers de config
-│       (próximas tasks: http/, ws/, storage/, router/, theme/, error/)
+│   ├── config/          # flavors, AppConfig, providers de config
+│   ├── network/         # dio + interceptors (JWT, refresh, erro)
+│   ├── realtime/        # cliente WebSocket (socket_io)
+│   └── router/          # go_router: shell com bottom nav (5 abas) + rotas
 │
 ├── features/            # uma pasta por módulo do produto (auth, dashboard, ...)
 │                        # cada feature: data/ · domain/ · presentation/

@@ -3,44 +3,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/app_config.dart';
 import 'core/config/app_config_provider.dart';
+import 'core/router/router_provider.dart';
+import 'shared/design_system/design_system.dart';
 
-/// Raiz visual do app.
-///
-/// Por enquanto entrega apenas um placeholder; o shell de navegação real
-/// (go_router + bottom nav) chega na S1-T5 e o tema completo na S1-T4.
+/// Raiz visual do app: tema do design system + shell de navegação (go_router).
 class AutoUniApp extends ConsumerWidget {
   const AutoUniApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
+    final router = ref.watch(appRouterProvider);
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: config.appName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1E5AA8)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      routerConfig: router,
       builder: (context, child) => _FlavorOverlay(config: config, child: child),
-      home: const _PlaceholderHome(),
-    );
-  }
-}
-
-/// Placeholder da tela inicial até o shell de navegação da S1-T5.
-class _PlaceholderHome extends StatelessWidget {
-  const _PlaceholderHome();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text(
-          'AutoUni',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
-        ),
-      ),
     );
   }
 }

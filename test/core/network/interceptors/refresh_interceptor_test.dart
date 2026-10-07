@@ -85,6 +85,50 @@ void main() {
     },
   );
 
+  test('falha de rede durante o refresh não derruba a sessão', () async {
+    when(() => refresher.refresh('r0')).thenAnswer(
+      (invocation) async => throw DioException.connectionError(
+        requestOptions: RequestOptions(path: '/auth/refresh'),
+        reason: 'sem rede',
+      ),
+    );
+    wire();
+
+    await expectLater(
+      dio.get<void>('/protected'),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.error,
+          'error',
+          isA<NetworkException>(),
+        ),
+      ),
+    );
+    expect(await store.readAccessToken(), 'stale');
+    expect(await store.readRefreshToken(), 'r0');
+  });
+
+  test('depois de uma falha de rede no refresh, a próxima request tenta '
+      'renovar de novo', () async {
+    var attempts = 0;
+    when(() => refresher.refresh('r0')).thenAnswer((_) async {
+      if (attempts++ == 0) {
+        throw DioException.connectionError(
+          requestOptions: RequestOptions(path: '/auth/refresh'),
+          reason: 'sem rede',
+        );
+      }
+      return const TokenPair(accessToken: 'fresh', refreshToken: 'r0');
+    });
+    wire();
+
+    await expectLater(dio.get<void>('/protected'), throwsA(anything));
+    final response = await dio.get<Map<String, dynamic>>('/protected');
+
+    expect(response.statusCode, 200);
+    expect(await store.readAccessToken(), 'fresh');
+  });
+
   test('sem refresh token não chama o refresher e derruba a sessão', () async {
     store = InMemoryAuthTokenStore(accessToken: 'stale');
     wire();

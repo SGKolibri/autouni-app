@@ -36,15 +36,45 @@ void main() {
 
   setUp(() {
     repository = _MockAuthRepository();
+    when(() => repository.restoreSession()).thenAnswer((_) async => null);
     container = ProviderContainer.test(
       overrides: [authRepositoryProvider.overrideWithValue(repository)],
     );
   });
 
-  test('começa deslogado: sem usuário e sem carregamento', () async {
+  test('sem sessão guardada começa deslogado', () async {
     expect(await container.read(authControllerProvider.future), isNull);
     expect(container.read(authControllerProvider).isLoading, isFalse);
-    verifyZeroInteractions(repository);
+    verify(() => repository.restoreSession()).called(1);
+  });
+
+  test('restaura o usuário da sessão guardada ao iniciar', () async {
+    when(() => repository.restoreSession()).thenAnswer((_) async => _user);
+
+    expect(container.read(authControllerProvider).isLoading, isTrue);
+    expect(await container.read(authControllerProvider.future), _user);
+    expect(container.read(authControllerProvider).value, _user);
+  });
+
+  test('login pedido durante a restauração espera ela terminar e '
+      'prevalece', () async {
+    final restoring = Completer<User?>();
+    when(() => repository.restoreSession()).thenAnswer((_) => restoring.future);
+    whenLogin().thenAnswer((_) async => _user);
+
+    final call = login();
+    await Future<void>.delayed(Duration.zero);
+    verifyNever(
+      () => repository.login(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    );
+
+    restoring.complete(null);
+    await call;
+
+    expect(container.read(authControllerProvider).value, _user);
   });
 
   test('login com sucesso expõe o usuário autenticado', () async {

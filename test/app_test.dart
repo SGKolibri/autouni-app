@@ -3,6 +3,8 @@ import 'package:autouni_app/bootstrap.dart';
 import 'package:autouni_app/core/config/app_config.dart';
 import 'package:autouni_app/core/config/app_config_provider.dart';
 import 'package:autouni_app/core/config/flavor.dart';
+import 'package:autouni_app/core/network/network_providers.dart';
+import 'package:autouni_app/core/network/secure_auth_token_store.dart';
 import 'package:autouni_app/core/router/app_tab.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:flutter/material.dart';
@@ -78,6 +80,19 @@ void main() {
       final element = tester.element(find.byType(AutoUniApp));
       final container = ProviderScope.containerOf(element);
       expect(container.read(appConfigProvider), same(config));
+    });
+
+    testWidgets('guarda os tokens de sessão no armazenamento seguro', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildAppRoot(AppConfig.forFlavor(Flavor.prod)));
+
+      final element = tester.element(find.byType(AutoUniApp));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(authTokenStoreProvider),
+        isA<SecureAuthTokenStore>(),
+      );
     });
   });
 }

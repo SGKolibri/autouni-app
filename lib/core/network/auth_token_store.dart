@@ -37,8 +37,9 @@ class TokenPair {
       : '${token.substring(0, 3)}…${token.substring(token.length - 3)}';
 }
 
-/// Guarda os tokens de sessão. A implementação de produção (armazenamento
-/// seguro, S2-T3) substitui [InMemoryAuthTokenStore] via override do provider.
+/// Guarda os tokens de sessão. A implementação de produção
+/// (`SecureAuthTokenStore`) substitui [InMemoryAuthTokenStore] via override
+/// do provider no bootstrap.
 abstract interface class AuthTokenStore {
   Future<String?> readAccessToken();
   Future<String?> readRefreshToken();
@@ -49,7 +50,7 @@ abstract interface class AuthTokenStore {
   Future<void> clear();
 }
 
-/// Implementação volátil, usada em testes e como default até a S2-T3.
+/// Implementação volátil, usada em testes e como default do provider.
 class InMemoryAuthTokenStore implements AuthTokenStore {
   InMemoryAuthTokenStore({this._accessToken, this._refreshToken});
 

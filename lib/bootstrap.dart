@@ -7,6 +7,7 @@ import 'core/config/app_config_provider.dart';
 import 'core/config/flavor.dart';
 import 'core/network/network_providers.dart';
 import 'core/network/secure_auth_token_store.dart';
+import 'features/auth/data/biometrics/biometric_login_settings.dart';
 
 /// Monta a árvore raiz do app já com a [AppConfig] do ambiente e o
 /// armazenamento seguro de tokens injetados no `ProviderScope` de topo. Separado de [runAutoUni] para poder ser exercido
@@ -17,6 +18,9 @@ Widget buildAppRoot(AppConfig config) {
       appConfigProvider.overrideWithValue(config),
       // Sessão persistida no Keychain/Keystore em vez de só em memória.
       authTokenStoreProvider.overrideWith((ref) => SecureAuthTokenStore()),
+      biometricLoginSettingsProvider.overrideWith(
+        (ref) => SecureBiometricLoginSettings(),
+      ),
     ],
     child: const AutoUniApp(),
   );

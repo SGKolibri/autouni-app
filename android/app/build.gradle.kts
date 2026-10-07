@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.autouni_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37 // flutter_secure_storage exige compilar contra o SDK 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

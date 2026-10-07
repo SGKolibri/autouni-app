@@ -1,5 +1,6 @@
 package com.example.autouni_app
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FragmentActivity é exigência do local_auth (BiometricPrompt).
+class MainActivity : FlutterFragmentActivity()

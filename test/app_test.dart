@@ -6,6 +6,7 @@ import 'package:autouni_app/core/config/flavor.dart';
 import 'package:autouni_app/core/network/network_providers.dart';
 import 'package:autouni_app/core/network/secure_auth_token_store.dart';
 import 'package:autouni_app/core/router/app_tab.dart';
+import 'package:autouni_app/features/auth/data/biometrics/biometric_login_settings.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,6 +93,19 @@ void main() {
       expect(
         container.read(authTokenStoreProvider),
         isA<SecureAuthTokenStore>(),
+      );
+    });
+
+    testWidgets('guarda a preferência de biometria no armazenamento seguro', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildAppRoot(AppConfig.forFlavor(Flavor.prod)));
+
+      final element = tester.element(find.byType(AutoUniApp));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(biometricLoginSettingsProvider),
+        isA<SecureBiometricLoginSettings>(),
       );
     });
   });

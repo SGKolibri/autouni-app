@@ -8,8 +8,9 @@ import 'token_refresher.dart';
 
 /// Guarda dos tokens de sessão.
 ///
-/// Default volátil ([InMemoryAuthTokenStore]); a S2-T3 sobrescreve este
-/// provider com a implementação em armazenamento seguro.
+/// Default volátil ([InMemoryAuthTokenStore]), seguro para testes; o
+/// bootstrap (`buildAppRoot`) sobrescreve este provider com o
+/// `SecureAuthTokenStore`, que persiste a sessão no armazenamento seguro.
 final authTokenStoreProvider = Provider<AuthTokenStore>(
   (ref) => InMemoryAuthTokenStore(),
   name: 'authTokenStoreProvider',

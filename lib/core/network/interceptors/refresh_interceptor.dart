@@ -18,6 +18,8 @@ import 'auth_interceptor.dart';
 ///   chamar o [TokenRefresher] de novo.
 /// - Refresh recusado (ou sem refresh token) → limpa a sessão e emite
 ///   [UnauthorizedException].
+/// - Refresh que falhou sem ser recusado (sem rede, timeout, 5xx) → a sessão
+///   é preservada e o erro segue adiante; a próxima request tenta de novo.
 /// - Cada request é repetida no máximo uma vez.
 class RefreshInterceptor extends Interceptor {
   RefreshInterceptor({

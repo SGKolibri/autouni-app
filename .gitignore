@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Código gerado (freezed / json_serializable): a CI gera com build_runner
+*.g.dart
+*.freezed.dart

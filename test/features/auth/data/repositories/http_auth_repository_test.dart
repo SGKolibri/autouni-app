@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../../support/fake_http_adapter.dart';
+import '../../../../support/fake_jwt.dart';
 
 class _MockTokenRefresher extends Mock implements TokenRefresher {}
 
@@ -212,5 +213,126 @@ void main() {
         expect(await tokenStore.readRefreshToken(), isNull);
       });
     }
+  });
+
+  group('HttpAuthRepository.restoreSession', () {
+    final now = DateTime.utc(2026, 10, 7, 12);
+
+    String token({
+      Duration expiresIn = const Duration(days: 7),
+      String name = 'João Silva',
+      String role = 'COORDINATOR',
+    }) => fakeJwt({
+      'sub': 'uuid-user-123',
+      'email': 'joao@example.com',
+      'name': name,
+      'role': role,
+      'exp': jwtSeconds(now.add(expiresIn)),
+    });
+
+    /// Restaurar a sessão é local: qualquer chamada HTTP quebra o teste.
+    HttpAuthRepository repository() {
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'))
+        ..httpClientAdapter = FakeHttpAdapter(
+          (options) => fail('não deveria chamar ${options.path}'),
+        );
+      return HttpAuthRepository(
+        dio: dio,
+        tokenStore: tokenStore,
+        now: () => now,
+      );
+    }
+
+    test('sem tokens guardados não há sessão', () async {
+      expect(await repository().restoreSession(), isNull);
+    });
+
+    test(
+      'reconstrói o usuário a partir das claims do token guardado',
+      () async {
+        await tokenStore.saveTokens(
+          accessToken: token(expiresIn: const Duration(minutes: 15)),
+          refreshToken: token(),
+        );
+
+        final user = await repository().restoreSession();
+
+        expect(user?.id, 'uuid-user-123');
+        expect(user?.email, 'joao@example.com');
+        expect(user?.name, 'João Silva');
+        expect(user?.role, UserRole.coordinator);
+      },
+    );
+
+    test('access token expirado não impede: o refresh renova depois', () async {
+      await tokenStore.saveTokens(
+        accessToken: token(expiresIn: const Duration(minutes: -30)),
+        refreshToken: token(),
+      );
+
+      expect(await repository().restoreSession(), isNotNull);
+      expect(await tokenStore.readRefreshToken(), isNotNull);
+    });
+
+    test('prefere as claims do access token, que é o mais recente', () async {
+      await tokenStore.saveTokens(
+        accessToken: token(name: 'João S. Atualizado', role: 'ADMIN'),
+        refreshToken: token(),
+      );
+
+      final user = await repository().restoreSession();
+
+      expect(user?.name, 'João S. Atualizado');
+      expect(user?.role, UserRole.admin);
+    });
+
+    test(
+      'usa as claims do refresh token se o access token for ilegível',
+      () async {
+        await tokenStore.saveTokens(accessToken: 'lixo', refreshToken: token());
+
+        expect((await repository().restoreSession())?.id, 'uuid-user-123');
+      },
+    );
+
+    test('papel desconhecido cai em VIEWER', () async {
+      await tokenStore.saveTokens(
+        accessToken: token(role: 'SUPERUSER'),
+        refreshToken: token(role: 'SUPERUSER'),
+      );
+
+      expect((await repository().restoreSession())?.role, UserRole.viewer);
+    });
+
+    test('refresh token expirado encerra a sessão e limpa os tokens', () async {
+      await tokenStore.saveTokens(
+        accessToken: token(),
+        refreshToken: token(expiresIn: const Duration(seconds: -1)),
+      );
+
+      expect(await repository().restoreSession(), isNull);
+      expect(await tokenStore.readAccessToken(), isNull);
+      expect(await tokenStore.readRefreshToken(), isNull);
+    });
+
+    test('refresh token ilegível encerra a sessão e limpa os tokens', () async {
+      await tokenStore.saveTokens(accessToken: token(), refreshToken: 'lixo');
+
+      expect(await repository().restoreSession(), isNull);
+      expect(await tokenStore.readRefreshToken(), isNull);
+    });
+
+    test('claims sem identificação do usuário encerram a sessão', () async {
+      final anonymous = fakeJwt({
+        'exp': jwtSeconds(now.add(const Duration(days: 1))),
+      });
+      await tokenStore.saveTokens(
+        accessToken: anonymous,
+        refreshToken: anonymous,
+      );
+
+      expect(await repository().restoreSession(), isNull);
+      expect(await tokenStore.readRefreshToken(), isNull);
+    });
   });
 }

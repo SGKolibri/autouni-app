@@ -1,4 +1,4 @@
-import 'package:autouni_app/features/auth/domain/models/user_role.dart';
+import 'package:autouni_app/shared/models/user_role.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -28,5 +28,14 @@ void main() {
     test('fromApi é sensível a maiúsculas, como o backend', () {
       expect(UserRole.fromApi('admin'), UserRole.viewer);
     });
+  });
+
+  test('cada papel tem um rótulo em português', () {
+    expect(UserRole.values.map((r) => r.label), [
+      'Administrador',
+      'Coordenador',
+      'Técnico',
+      'Visualizador',
+    ]);
   });
 }

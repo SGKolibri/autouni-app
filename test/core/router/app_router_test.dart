@@ -1,5 +1,7 @@
 import 'package:autouni_app/core/router/app_router.dart';
 import 'package:autouni_app/core/router/app_tab.dart';
+import 'package:autouni_app/core/router/session_guard.dart';
+import 'package:autouni_app/core/router/splash_page.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -146,6 +148,117 @@ void main() {
 
       expect(router.state.uri.path, AppTab.dashboard.path);
       expect(_tabPage(AppTab.dashboard), findsOneWidget);
+    });
+  });
+
+  group('composição pelo app', () {
+    testWidgets('usa a tela raiz e as sub-rotas injetadas para a aba', (
+      tester,
+    ) async {
+      final router = createAppRouter(
+        tabPages: {
+          AppTab.environments: (context, state) => const Text('prédios'),
+        },
+        tabRoutes: {
+          AppTab.environments: [
+            GoRoute(
+              path: 'buildings/:id',
+              builder: (context, state) =>
+                  Text('prédio ${state.pathParameters['id']}'),
+            ),
+          ],
+        },
+        initialLocation: '/environments/buildings/b1',
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: AppTheme.light(), routerConfig: router),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('prédio b1'), findsOneWidget);
+      expect(_selectedIndex(tester), AppTab.environments.index);
+
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('prédios'), findsOneWidget);
+    });
+  });
+
+  group('guard de sessão', () {
+    Future<(GoRouter, ValueNotifier<SessionStatus>)> pumpGuarded(
+      WidgetTester tester, {
+      required SessionStatus status,
+      String? initialLocation,
+    }) async {
+      final session = ValueNotifier(status);
+      addTearDown(session.dispose);
+      final router = createAppRouter(
+        initialLocation: initialLocation,
+        sessionStatus: () => session.value,
+        refreshListenable: session,
+        outsideShellRoutes: [
+          GoRoute(
+            path: SessionRoutes.login,
+            builder: (context, state) => const Text('tela de login'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        MaterialApp.router(theme: AppTheme.light(), routerConfig: router),
+      );
+      await tester.pump();
+      return (router, session);
+    }
+
+    testWidgets('mostra o splash enquanto restaura a sessão', (tester) async {
+      await pumpGuarded(tester, status: SessionStatus.unknown);
+
+      expect(find.byType(SplashPage), findsOneWidget);
+      expect(find.byType(AppBottomNav), findsNothing);
+    });
+
+    testWidgets('deslogado vai para o login', (tester) async {
+      final (router, _) = await pumpGuarded(
+        tester,
+        status: SessionStatus.signedOut,
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.path, SessionRoutes.login);
+      expect(find.text('tela de login'), findsOneWidget);
+    });
+
+    testWidgets('deep link sobrevive ao splash e ao login', (tester) async {
+      final (router, session) = await pumpGuarded(
+        tester,
+        status: SessionStatus.unknown,
+        initialLocation: AppTab.notifications.path,
+      );
+
+      session.value = SessionStatus.signedOut;
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, SessionRoutes.login);
+
+      session.value = SessionStatus.signedIn;
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, AppTab.notifications.path);
+      expect(_tabPage(AppTab.notifications), findsOneWidget);
+    });
+
+    testWidgets('logout derruba para o login', (tester) async {
+      final (router, session) = await pumpGuarded(
+        tester,
+        status: SessionStatus.signedIn,
+      );
+      await tester.pumpAndSettle();
+      expect(_tabPage(AppTab.dashboard), findsOneWidget);
+
+      session.value = SessionStatus.signedOut;
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.path, SessionRoutes.login);
     });
   });
 }

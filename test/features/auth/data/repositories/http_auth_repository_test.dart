@@ -5,7 +5,7 @@ import 'package:autouni_app/core/network/auth_token_store.dart';
 import 'package:autouni_app/core/network/dio_client.dart';
 import 'package:autouni_app/core/network/token_refresher.dart';
 import 'package:autouni_app/features/auth/data/repositories/http_auth_repository.dart';
-import 'package:autouni_app/features/auth/domain/models/user_role.dart';
+import 'package:autouni_app/shared/models/user_role.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -333,6 +333,84 @@ void main() {
 
       expect(await repository().restoreSession(), isNull);
       expect(await tokenStore.readRefreshToken(), isNull);
+    });
+  });
+
+  group('HttpAuthRepository.logout', () {
+    setUp(
+      () => tokenStore.saveTokens(accessToken: 'access-1', refreshToken: 'r1'),
+    );
+
+    test('POST /auth/logout autenticado e apaga os tokens', () async {
+      final (repository, adapter) = build(
+        FakeResponse(200, body: {'message': 'ok'}),
+      );
+
+      await repository.logout();
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/auth/logout');
+      expect(request.headers['Authorization'], 'Bearer access-1');
+      expect(await tokenStore.readAccessToken(), isNull);
+      expect(await tokenStore.readRefreshToken(), isNull);
+    });
+
+    test('sem rede, o logout local acontece do mesmo jeito', () async {
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'))
+        ..httpClientAdapter = FakeHttpAdapter(
+          (options) => throw DioException.connectionError(
+            requestOptions: options,
+            reason: 'sem rede',
+          ),
+        );
+
+      await HttpAuthRepository(dio: dio, tokenStore: tokenStore).logout();
+
+      expect(await tokenStore.readRefreshToken(), isNull);
+    });
+
+    test('erro do servidor também não impede o logout local', () async {
+      final (repository, _) = build(FakeResponse(500));
+
+      await repository.logout();
+
+      expect(await tokenStore.readAccessToken(), isNull);
+    });
+  });
+
+  group('HttpAuthRepository.requestPasswordReset', () {
+    test('POST /auth/forgot-password público com o e-mail aparado', () async {
+      await tokenStore.saveTokens(accessToken: 'stale', refreshToken: 'r');
+      final (repository, adapter) = build(FakeResponse(204, body: ''));
+
+      await repository.requestPasswordReset(email: ' joao@example.com ');
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/auth/forgot-password');
+      expect(request.data, {'email': 'joao@example.com'});
+      expect(request.headers, isNot(contains('Authorization')));
+    });
+
+    test('rota inexistente no backend (404) vira NotFoundException', () async {
+      final (repository, _) = build(FakeResponse(404));
+
+      await expectLater(
+        repository.requestPasswordReset(email: 'joao@example.com'),
+        throwsA(isA<NotFoundException>()),
+      );
+    });
+
+    test('e-mail inválido (400) vira BadRequestException', () async {
+      final (repository, _) = build(
+        FakeResponse(400, body: {'message': 'email must be an email'}),
+      );
+
+      await expectLater(
+        repository.requestPasswordReset(email: 'x'),
+        throwsA(isA<BadRequestException>()),
+      );
     });
   });
 }

@@ -5,7 +5,7 @@ import '../../../../core/network/auth_token_store.dart';
 import '../../../../core/network/interceptors/auth_interceptor.dart';
 import '../../domain/models/auth_tokens.dart';
 import '../../domain/models/user.dart';
-import '../../domain/models/user_role.dart';
+import '../../../../shared/models/user_role.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../session/jwt_payload.dart';
 
@@ -18,22 +18,61 @@ class HttpAuthRepository implements AuthRepository {
     required this._dio,
     required this._tokenStore,
     this.loginPath = '/auth/login',
+    this.logoutPath = '/auth/logout',
+    this.passwordResetPath = '/auth/forgot-password',
     this._now = DateTime.now,
   });
 
   final Dio _dio;
   final AuthTokenStore _tokenStore;
   final String loginPath;
+  final String logoutPath;
+  final String passwordResetPath;
   final DateTime Function() _now;
 
   @override
   Future<User> login({required String email, required String password}) async {
-    final Response<dynamic> response;
+    final response = await _publicPost(
+      loginPath,
+      data: {'email': email.trim(), 'password': password},
+    );
+
+    final (user, tokens) = _parse(response);
+    await _tokenStore.saveTokens(
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    );
+    return user;
+  }
+
+  @override
+  Future<void> logout() async {
     try {
-      response = await _dio.post<dynamic>(
-        loginPath,
-        data: {'email': email.trim(), 'password': password},
-        // Rota pública: sem Bearer e sem refresh automático no 401.
+      await _dio.post<dynamic>(logoutPath);
+    } on DioException {
+      // O backend só invalida o refresh token; sem rede, o logout local basta.
+    } finally {
+      await _tokenStore.clear();
+    }
+  }
+
+  /// O backend ainda não expõe `POST /auth/forgot-password`: até lá a
+  /// chamada responde 404 e quem chama trata como "indisponível".
+  @override
+  Future<void> requestPasswordReset({required String email}) async {
+    await _publicPost(passwordResetPath, data: {'email': email.trim()});
+  }
+
+  /// POST em rota pública (sem Bearer e sem refresh automático no 401), com
+  /// as falhas já traduzidas para [ApiException].
+  Future<Response<dynamic>> _publicPost(
+    String path, {
+    required Object data,
+  }) async {
+    try {
+      return await _dio.post<dynamic>(
+        path,
+        data: data,
         options: Options(extra: AuthInterceptor.skipAuth),
       );
     } on DioException catch (error) {
@@ -42,13 +81,6 @@ class HttpAuthRepository implements AuthRepository {
           ? translated
           : ApiException.fromDioException(error);
     }
-
-    final (user, tokens) = _parse(response);
-    await _tokenStore.saveTokens(
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    );
-    return user;
   }
 
   /// Como não existe `GET /auth/me`, o usuário é reconstruído das claims do

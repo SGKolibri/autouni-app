@@ -5,8 +5,9 @@ import 'status_badge.dart';
 
 /// Linha de dispositivo para listas (sala, lista global).
 ///
-/// Estados cobertos: ligado/desligado e offline (controle indisponível). Sem
-/// `onToggle` a linha vira somente-leitura (ex.: papel VIEWER).
+/// Estados cobertos: ligado/desligado, offline (controle indisponível) e
+/// comando aguardando confirmação ([busy]). Sem `onToggle` a linha vira
+/// somente-leitura (ex.: papel VIEWER).
 class DeviceRow extends StatelessWidget {
   const DeviceRow({
     required this.name,
@@ -14,6 +15,7 @@ class DeviceRow extends StatelessWidget {
     this.subtitle,
     this.isOn = false,
     this.isOffline = false,
+    this.busy = false,
     this.onToggle,
     this.onTap,
     super.key,
@@ -24,6 +26,9 @@ class DeviceRow extends StatelessWidget {
   final String? subtitle;
   final bool isOn;
   final bool isOffline;
+
+  /// Comando enviado, aguardando confirmação: switch travado com indicador.
+  final bool busy;
   final ValueChanged<bool>? onToggle;
   final VoidCallback? onTap;
 
@@ -93,7 +98,18 @@ class DeviceRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Switch(value: active, onChanged: isOffline ? null : onToggle),
+            if (busy)
+              const Padding(
+                padding: EdgeInsets.only(right: AppSpacing.xs),
+                child: SizedBox.square(
+                  dimension: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            Switch(
+              value: active,
+              onChanged: isOffline || busy ? null : onToggle,
+            ),
           ],
         ),
       ),

@@ -16,8 +16,8 @@ import 'auth_interceptor.dart';
 ///   também tomaram 401 aguardam o mesmo refresh e reusam o token.
 /// - Se outra request já renovou enquanto esta esperava, repete direto sem
 ///   chamar o [TokenRefresher] de novo.
-/// - Refresh recusado (ou sem refresh token) → limpa a sessão e emite
-///   [UnauthorizedException].
+/// - Refresh recusado (ou sem refresh token) → limpa a sessão, avisa
+///   `onSessionExpired` e emite [UnauthorizedException].
 /// - Refresh que falhou sem ser recusado (sem rede, timeout, 5xx) → a sessão
 ///   é preservada e o erro segue adiante; a próxima request tenta de novo.
 /// - Cada request é repetida no máximo uma vez.
@@ -26,13 +26,16 @@ class RefreshInterceptor extends Interceptor {
     required Dio retrier,
     required AuthTokenStore tokenStore,
     required TokenRefresher refresher,
+    void Function()? onSessionExpired,
   }) : _retrier = retrier,
        _tokenStore = tokenStore,
-       _refresher = refresher;
+       _refresher = refresher,
+       _onSessionExpired = onSessionExpired;
 
   final Dio _retrier;
   final AuthTokenStore _tokenStore;
   final TokenRefresher _refresher;
+  final void Function()? _onSessionExpired;
 
   static const String _retriedKey = 'autouni.network.retried';
 
@@ -57,19 +60,24 @@ class RefreshInterceptor extends Interceptor {
     try {
       final token = await _freshAccessToken(_bearerOf(options));
       if (token == null) {
-        await _tokenStore.clear();
+        await _endSession();
         handler.reject(_sessionExpired(err));
         return;
       }
       handler.resolve(await _retry(options, token));
     } on DioException catch (retryError) {
       if (retryError.response?.statusCode == 401) {
-        await _tokenStore.clear();
+        await _endSession();
         handler.reject(_sessionExpired(retryError));
       } else {
         handler.next(retryError);
       }
     }
+  }
+
+  Future<void> _endSession() async {
+    await _tokenStore.clear();
+    _onSessionExpired?.call();
   }
 
   /// Token válido para repetir a request, ou `null` se a sessão acabou.

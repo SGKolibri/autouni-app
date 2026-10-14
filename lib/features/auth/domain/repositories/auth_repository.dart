@@ -12,4 +12,11 @@ abstract interface class AuthRepository {
   /// Recupera o usuário da sessão guardada no dispositivo, sem ir à rede.
   /// Devolve `null` (e descarta os tokens) se não houver sessão aproveitável.
   Future<User?> restoreSession();
+
+  /// Encerra a sessão: avisa o backend (melhor esforço — sem rede, o logout
+  /// local acontece do mesmo jeito) e apaga os tokens do aparelho.
+  Future<void> logout();
+
+  /// Pede o e-mail de recuperação de senha para [email].
+  Future<void> requestPasswordReset({required String email});
 }

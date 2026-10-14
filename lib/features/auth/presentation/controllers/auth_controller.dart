@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/biometrics/biometric_authenticator.dart';
 import '../../../../core/biometrics/biometric_providers.dart';
+import '../../../../core/cache/cache_providers.dart';
+import '../../../../core/session/session_events.dart';
+import '../../../../shared/devices/device_live_state.dart';
 import '../../data/auth_data_providers.dart';
 import '../../data/biometrics/biometric_login_settings.dart';
 import '../../domain/models/user.dart';
@@ -22,6 +25,16 @@ class AuthController extends AsyncNotifier<User?> {
 
   @override
   FutureOr<User?> build() async {
+    // O refresh token foi recusado em alguma request: a sessão acabou.
+    final expiry = ref.watch(sessionEventsProvider).expired.listen((_) {
+      if (!ref.mounted || state.value == null) return;
+      ref.read(sessionExpiredNoticeProvider.notifier).show();
+      unawaited(ref.read(localCacheProvider).clear());
+      ref.invalidate(deviceLiveStateProvider);
+      state = const AsyncData(null);
+    });
+    ref.onDispose(expiry.cancel);
+
     final user = await ref.watch(authRepositoryProvider).restoreSession();
     if (user == null) return null;
     final locked = await ref.watch(biometricLoginSettingsProvider).isEnabled();
@@ -46,7 +59,11 @@ class AuthController extends AsyncNotifier<User?> {
             .read(authRepositoryProvider)
             .login(email: email, password: password),
       );
-      if (ref.mounted) state = result;
+      if (!ref.mounted) return;
+      if (result.hasValue) {
+        ref.read(sessionExpiredNoticeProvider.notifier).hide();
+      }
+      state = result;
     } finally {
       _loginInFlight = false;
     }
@@ -100,7 +117,34 @@ class AuthController extends AsyncNotifier<User?> {
       _loginInFlight = false;
     }
   }
+
+  /// Sai da conta: avisa o backend, apaga tokens, o cache local (que tem
+  /// dados do usuário) e o estado ao vivo dos dispositivos. A preferência de biometria fica — sem sessão
+  /// guardada, ela só volta a valer depois do próximo login por senha.
+  Future<void> logout() async {
+    await ref.read(authRepositoryProvider).logout();
+    await ref.read(localCacheProvider).clear();
+    if (!ref.mounted) return;
+    ref.invalidate(deviceLiveStateProvider);
+    state = const AsyncData(null);
+  }
 }
+
+/// Aviso de "sessão expirada" para a tela de login, ligado quando o refresh
+/// token é recusado e desligado no próximo login.
+class SessionExpiredNotice extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void show() => state = true;
+  void hide() => state = false;
+}
+
+final sessionExpiredNoticeProvider =
+    NotifierProvider<SessionExpiredNotice, bool>(
+      SessionExpiredNotice.new,
+      name: 'sessionExpiredNoticeProvider',
+    );
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, User?>(
   AuthController.new,

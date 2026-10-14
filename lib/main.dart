@@ -6,7 +6,7 @@ import 'core/config/flavor.dart';
 /// Resolve o ambiente por `--dart-define=FLAVOR=dev|prod`, caindo em
 /// [Flavor.dev] quando ausente. Para builds explícitos prefira os entrypoints
 /// dedicados `lib/main_dev.dart` e `lib/main_prod.dart`.
-void main() {
+Future<void> main() {
   const flavorName = String.fromEnvironment('FLAVOR');
-  runAutoUni(Flavor.fromName(flavorName));
+  return runAutoUni(Flavor.fromName(flavorName));
 }

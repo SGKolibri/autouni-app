@@ -3,7 +3,7 @@ import 'package:autouni_app/core/biometrics/biometric_providers.dart';
 import 'package:autouni_app/features/auth/data/auth_data_providers.dart';
 import 'package:autouni_app/features/auth/data/biometrics/biometric_login_settings.dart';
 import 'package:autouni_app/features/auth/domain/models/user.dart';
-import 'package:autouni_app/features/auth/domain/models/user_role.dart';
+import 'package:autouni_app/shared/models/user_role.dart';
 import 'package:autouni_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:autouni_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:autouni_app/features/auth/presentation/controllers/biometric_login_controller.dart';

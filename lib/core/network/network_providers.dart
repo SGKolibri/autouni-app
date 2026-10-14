@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config_provider.dart';
+import '../session/session_events.dart';
 import 'auth_token_store.dart';
 import 'dio_client.dart';
 import 'token_refresher.dart';
@@ -28,6 +29,7 @@ final dioProvider = Provider<Dio>((ref) {
     config: ref.watch(appConfigProvider),
     tokenStore: ref.watch(authTokenStoreProvider),
     refresher: ref.watch(tokenRefresherProvider),
+    onSessionExpired: ref.watch(sessionEventsProvider).notifyExpired,
   );
   ref.onDispose(() => dio.close(force: true));
   return dio;

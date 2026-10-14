@@ -33,16 +33,24 @@ void main() {
     });
   }
 
+  var sessionExpiredCalls = 0;
+
   void wire() {
     dio.httpClientAdapter = adapter;
     dio.interceptors.add(AuthInterceptor(store));
     dio.interceptors.add(
-      RefreshInterceptor(tokenStore: store, refresher: refresher, retrier: dio),
+      RefreshInterceptor(
+        tokenStore: store,
+        refresher: refresher,
+        retrier: dio,
+        onSessionExpired: () => sessionExpiredCalls++,
+      ),
     );
     dio.interceptors.add(ErrorInterceptor());
   }
 
   setUp(() {
+    sessionExpiredCalls = 0;
     store = InMemoryAuthTokenStore(accessToken: 'stale', refreshToken: 'r0');
     refresher = _MockTokenRefresher();
     dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
@@ -82,6 +90,7 @@ void main() {
       );
       expect(await store.readAccessToken(), isNull);
       expect(await store.readRefreshToken(), isNull);
+      expect(sessionExpiredCalls, 1);
     },
   );
 
@@ -106,6 +115,7 @@ void main() {
     );
     expect(await store.readAccessToken(), 'stale');
     expect(await store.readRefreshToken(), 'r0');
+    expect(sessionExpiredCalls, 0);
   });
 
   test('depois de uma falha de rede no refresh, a próxima request tenta '

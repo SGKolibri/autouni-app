@@ -1,5 +1,5 @@
 import 'package:autouni_app/features/auth/domain/models/user.dart';
-import 'package:autouni_app/features/auth/domain/models/user_role.dart';
+import 'package:autouni_app/shared/models/user_role.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Usuário completo, como o backend devolve em POST /auth/login

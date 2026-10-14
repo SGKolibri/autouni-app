@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'user_role.dart';
+import '../../../../shared/models/user_role.dart';
 
 part 'user.freezed.dart';
 part 'user.g.dart';

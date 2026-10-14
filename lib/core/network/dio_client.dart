@@ -22,6 +22,7 @@ Dio buildAppDio({
   required AppConfig config,
   required AuthTokenStore tokenStore,
   required TokenRefresher refresher,
+  void Function()? onSessionExpired,
 }) {
   final dio = Dio(_baseOptions(config));
   dio.interceptors.addAll([
@@ -30,6 +31,7 @@ Dio buildAppDio({
       tokenStore: tokenStore,
       refresher: refresher,
       retrier: dio,
+      onSessionExpired: onSessionExpired,
     ),
     const ErrorInterceptor(),
     if (config.enableVerboseLogging)

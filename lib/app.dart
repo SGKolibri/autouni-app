@@ -3,15 +3,43 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/app_config.dart';
 import 'core/config/app_config_provider.dart';
-import 'core/router/router_provider.dart';
+import 'core/realtime/realtime_providers.dart';
+import 'features/auth/presentation/controllers/session_realtime_binding.dart';
+import 'routing/app_router_provider.dart';
 import 'shared/design_system/design_system.dart';
 
 /// Raiz visual do app: tema do design system + shell de navegação (go_router).
-class AutoUniApp extends ConsumerWidget {
+///
+/// Também mantém o WebSocket ligado à sessão e ao ciclo de vida do app
+/// (solta em background, retoma em foreground).
+class AutoUniApp extends ConsumerStatefulWidget {
   const AutoUniApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AutoUniApp> createState() => _AutoUniAppState();
+}
+
+class _AutoUniAppState extends ConsumerState<AutoUniApp> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (state) =>
+          ref.read(realtimeClientProvider).handleAppLifecycleState(state),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(sessionRealtimeBindingProvider);
     final config = ref.watch(appConfigProvider);
     final router = ref.watch(appRouterProvider);
 

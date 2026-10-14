@@ -1,9 +1,15 @@
 import 'dart:async';
 
+import 'package:autouni_app/core/cache/cache_providers.dart';
+import 'package:autouni_app/core/cache/local_cache.dart';
 import 'package:autouni_app/core/network/api_exception.dart';
+import 'package:autouni_app/core/session/session_events.dart';
+import 'package:autouni_app/shared/devices/device_live_state.dart';
+import 'package:autouni_app/shared/models/campus/campus_enums.dart';
+import 'package:autouni_app/shared/realtime/device_events.dart';
 import 'package:autouni_app/features/auth/data/auth_data_providers.dart';
 import 'package:autouni_app/features/auth/domain/models/user.dart';
-import 'package:autouni_app/features/auth/domain/models/user_role.dart';
+import 'package:autouni_app/shared/models/user_role.dart';
 import 'package:autouni_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:autouni_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -160,5 +166,93 @@ void main() {
     expect(states, hasLength(2));
     expect(states.first.isLoading, isTrue);
     expect(states.last.value, _user);
+  });
+
+  group('logout', () {
+    setUp(() {
+      when(() => repository.restoreSession()).thenAnswer((_) async => _user);
+      when(() => repository.logout()).thenAnswer((_) async {});
+    });
+
+    test('encerra a sessão no backend, limpa o cache e desloga', () async {
+      final cache = InMemoryLocalCache();
+      await cache.write('buildings', [1]);
+      container = ProviderContainer.test(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repository),
+          localCacheProvider.overrideWithValue(cache),
+        ],
+      );
+      expect(await container.read(authControllerProvider.future), _user);
+
+      await container.read(authControllerProvider.notifier).logout();
+
+      verify(() => repository.logout()).called(1);
+      expect(container.read(authControllerProvider).value, isNull);
+      expect(await cache.read('buildings'), isNull);
+    });
+
+    test('descarta o estado ao vivo dos dispositivos', () async {
+      container = ProviderContainer.test(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repository),
+          deviceEventsProvider.overrideWithValue(const Stream.empty()),
+        ],
+      );
+      await container.read(authControllerProvider.future);
+      container
+          .read(deviceLiveStateProvider.notifier)
+          .begin('d1', const DeviceOverride(status: DeviceStatus.on));
+
+      await container.read(authControllerProvider.notifier).logout();
+
+      expect(container.read(deviceLiveStateProvider).overrides, isEmpty);
+    });
+  });
+
+  group('sessão expirada (refresh recusado)', () {
+    test(
+      'desloga, limpa o cache e liga o aviso para a tela de login',
+      () async {
+        when(() => repository.restoreSession()).thenAnswer((_) async => _user);
+        final cache = InMemoryLocalCache();
+        await cache.write('buildings', [1]);
+        container = ProviderContainer.test(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(repository),
+            localCacheProvider.overrideWithValue(cache),
+          ],
+        );
+        expect(await container.read(authControllerProvider.future), _user);
+
+        container.read(sessionEventsProvider).notifyExpired();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(container.read(authControllerProvider).value, isNull);
+        expect(container.read(sessionExpiredNoticeProvider), isTrue);
+        expect(await cache.read('buildings'), isNull);
+      },
+    );
+
+    test('o aviso some no próximo login', () async {
+      when(() => repository.restoreSession()).thenAnswer((_) async => _user);
+      whenLogin().thenAnswer((_) async => _user);
+      await container.read(authControllerProvider.future);
+      container.read(sessionEventsProvider).notifyExpired();
+      await Future<void>.delayed(Duration.zero);
+
+      await login();
+
+      expect(container.read(sessionExpiredNoticeProvider), isFalse);
+    });
+
+    test('sem usuário logado, o aviso de expiração é ignorado', () async {
+      await container.read(authControllerProvider.future);
+
+      container.read(sessionEventsProvider).notifyExpired();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(sessionExpiredNoticeProvider), isFalse);
+    });
   });
 }

@@ -1,6 +1,7 @@
 import 'package:autouni_app/core/config/app_config.dart';
 import 'package:autouni_app/core/config/app_config_provider.dart';
 import 'package:autouni_app/core/config/flavor.dart';
+import 'package:autouni_app/core/config/provider_retry.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,7 @@ extension PumpApp on WidgetTester {
     Brightness brightness = Brightness.light,
   }) async {
     final container = ProviderContainer.test(
+      retry: noAutomaticRetry,
       overrides: [
         appConfigProvider.overrideWithValue(
           config ?? AppConfig.forFlavor(Flavor.dev),

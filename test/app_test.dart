@@ -2,19 +2,52 @@ import 'package:autouni_app/app.dart';
 import 'package:autouni_app/bootstrap.dart';
 import 'package:autouni_app/core/config/app_config.dart';
 import 'package:autouni_app/core/config/app_config_provider.dart';
+import 'package:autouni_app/core/cache/cache_providers.dart';
+import 'package:autouni_app/core/cache/local_cache.dart';
 import 'package:autouni_app/core/config/flavor.dart';
+import 'package:autouni_app/core/realtime/realtime_providers.dart';
+import 'package:autouni_app/features/auth/data/auth_data_providers.dart';
+import 'package:autouni_app/features/auth/domain/models/user.dart';
+import 'package:autouni_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:autouni_app/features/auth/presentation/pages/login_page.dart';
+import 'package:autouni_app/features/dashboard/data/dashboard_repository.dart';
+import 'package:autouni_app/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:autouni_app/shared/rbac/rbac_providers.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mocktail/mocktail.dart';
+
+import 'support/app_fakes.dart';
+
 import 'package:autouni_app/core/network/network_providers.dart';
 import 'package:autouni_app/core/network/secure_auth_token_store.dart';
-import 'package:autouni_app/core/router/app_tab.dart';
 import 'package:autouni_app/features/auth/data/biometrics/biometric_login_settings.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _MockAuthRepository extends Mock implements AuthRepository {}
+
+const _user = User(id: 'u1', email: 'ana@uni.br', name: 'Ana');
+
 void main() {
+  late _MockAuthRepository repository;
+  late MockRealtimeClient realtime;
+
+  setUp(() {
+    repository = _MockAuthRepository();
+    realtime = MockRealtimeClient.connected();
+    when(() => repository.restoreSession()).thenAnswer((_) async => _user);
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
   Widget appWith(AppConfig config) => ProviderScope(
-    overrides: [appConfigProvider.overrideWithValue(config)],
+    overrides: [
+      appConfigProvider.overrideWithValue(config),
+      authRepositoryProvider.overrideWithValue(repository),
+      realtimeClientProvider.overrideWithValue(realtime),
+      dashboardRepositoryProvider.overrideWithValue(EmptyDashboardRepository()),
+    ],
     child: const AutoUniApp(),
   );
 
@@ -44,10 +77,33 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AppBottomNav), findsOneWidget);
-      expect(
-        find.byKey(ValueKey('tab-page-${AppTab.dashboard.name}')),
-        findsOneWidget,
-      );
+      expect(find.byType(DashboardPage), findsOneWidget);
+    });
+
+    testWidgets('sem sessão guardada abre no login', (tester) async {
+      when(() => repository.restoreSession()).thenAnswer((_) async => null);
+      await tester.pumpWidget(appWith(AppConfig.forFlavor(Flavor.prod)));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LoginPage), findsOneWidget);
+      expect(find.byType(AppBottomNav), findsNothing);
+    });
+
+    testWidgets('conecta o tempo real com a sessão aberta', (tester) async {
+      await tester.pumpWidget(appWith(AppConfig.forFlavor(Flavor.prod)));
+      await tester.pumpAndSettle();
+
+      verify(() => realtime.connect()).called(1);
+    });
+
+    testWidgets('repassa o ciclo de vida do app ao tempo real', (tester) async {
+      await tester.pumpWidget(appWith(AppConfig.forFlavor(Flavor.prod)));
+      await tester.pumpAndSettle();
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+
+      verify(() => realtime.handleAppLifecycleState(AppLifecycleState.paused))
+          .called(1);
     });
 
     testWidgets('mantém a faixa do flavor por cima do shell em dev', (
@@ -94,6 +150,26 @@ void main() {
         container.read(authTokenStoreProvider),
         isA<SecureAuthTokenStore>(),
       );
+    });
+
+    testWidgets('o papel do RBAC vem da sessão', (tester) async {
+      await tester.pumpWidget(buildAppRoot(AppConfig.forFlavor(Flavor.prod)));
+      await tester.pumpAndSettle();
+
+      final element = tester.element(find.byType(AutoUniApp));
+      final container = ProviderScope.containerOf(element);
+      expect(container.read(currentUserRoleProvider), isNull);
+    });
+
+    testWidgets('usa o cache local recebido', (tester) async {
+      final cache = InMemoryLocalCache();
+      await tester.pumpWidget(
+        buildAppRoot(AppConfig.forFlavor(Flavor.prod), cache: cache),
+      );
+
+      final element = tester.element(find.byType(AutoUniApp));
+      final container = ProviderScope.containerOf(element);
+      expect(container.read(localCacheProvider), same(cache));
     });
 
     testWidgets('guarda a preferência de biometria no armazenamento seguro', (

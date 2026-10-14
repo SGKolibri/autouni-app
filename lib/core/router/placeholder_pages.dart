@@ -29,7 +29,7 @@ class TabPlaceholderPage extends StatelessWidget {
               color: theme.colorScheme.outline,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text('Em construção', style: theme.textTheme.bodyMedium),
+            Text('', style: theme.textTheme.bodyMedium),
           ],
         ),
       ),

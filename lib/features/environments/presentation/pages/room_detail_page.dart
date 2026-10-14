@@ -158,13 +158,7 @@ class _RoomContent extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          child: GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.6,
+          child: KpiGrid(
             children: [
               KpiCard(
                 label: 'Ligados',

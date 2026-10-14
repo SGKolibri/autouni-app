@@ -233,4 +233,27 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('KPIs cabem num celular sem overflow', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    await tester.pumpRouterApp(
+      initialLocation: '/dashboard',
+      routes: [
+        GoRoute(path: '/dashboard', builder: (_, _) => const DashboardPage()),
+      ],
+      overrides: [
+        dashboardRepositoryProvider.overrideWithValue(repository),
+        deviceEventsProvider.overrideWithValue(events.stream),
+        realtimeStatusProvider.overrideWithValue(
+          RealtimeConnectionStatus.connected,
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('1 offline'), findsOneWidget);
+  });
 }

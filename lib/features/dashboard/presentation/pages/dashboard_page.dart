@@ -88,13 +88,7 @@ class _DashboardContent extends ConsumerWidget {
             AppSpacing.lg,
             0,
           ),
-          child: GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.45,
+          child: KpiGrid(
             children: [
               KpiCard(
                 label: 'Dispositivos ligados',
@@ -211,13 +205,7 @@ class _DashboardSkeleton extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSpacing.md,
-            crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.45,
+          KpiGrid(
             children: List.generate(
               4,
               (_) => const AppSkeleton(height: 96, radius: AppRadius.lg),

@@ -12,6 +12,11 @@ import 'package:autouni_app/features/auth/domain/repositories/auth_repository.da
 import 'package:autouni_app/features/auth/presentation/pages/login_page.dart';
 import 'package:autouni_app/features/dashboard/data/dashboard_repository.dart';
 import 'package:autouni_app/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:autouni_app/core/push/push_messaging.dart';
+import 'package:autouni_app/core/push/push_providers.dart';
+import 'package:autouni_app/core/session/session_hooks.dart';
+import 'package:autouni_app/shared/push/push_prompt_store.dart';
+import 'package:autouni_app/shared/push/push_registration.dart';
 import 'package:autouni_app/shared/rbac/rbac_providers.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mocktail/mocktail.dart';
@@ -27,6 +32,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+class _MockPushMessaging extends Mock implements PushMessaging {}
 
 const _user = User(id: 'u1', email: 'ana@uni.br', name: 'Ana');
 
@@ -183,6 +190,39 @@ void main() {
         container.read(biometricLoginSettingsProvider),
         isA<SecureBiometricLoginSettings>(),
       );
+    });
+
+    testWidgets('sem Firebase, push desligado e sem sessão não há usuário', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildAppRoot(AppConfig.forFlavor(Flavor.prod)));
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AutoUniApp)),
+      );
+      expect(container.read(pushMessagingProvider), isNull);
+      expect(container.read(sessionUserIdProvider), isNull);
+      expect(container.read(pushRegistrationProvider), PushStatus.unavailable);
+    });
+
+    testWidgets('com push, injeta o plugin e guarda o convite no seguro', (
+      tester,
+    ) async {
+      final push = _MockPushMessaging();
+      await tester.pumpWidget(
+        buildAppRoot(AppConfig.forFlavor(Flavor.prod), push: push),
+      );
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AutoUniApp)),
+      );
+      expect(container.read(pushMessagingProvider), same(push));
+      expect(
+        container.read(pushPromptStoreProvider),
+        isA<SecurePushPromptStore>(),
+      );
+      // deslogado: não pergunta nada ao sistema
+      verifyZeroInteractions(push);
     });
   });
 }

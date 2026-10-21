@@ -6,12 +6,14 @@ import 'core/config/app_config_provider.dart';
 import 'core/realtime/realtime_providers.dart';
 import 'features/auth/presentation/controllers/session_realtime_binding.dart';
 import 'routing/app_router_provider.dart';
+import 'shared/push/push_registration.dart';
 import 'shared/design_system/design_system.dart';
 
 /// Raiz visual do app: tema do design system + shell de navegação (go_router).
 ///
 /// Também mantém o WebSocket ligado à sessão e ao ciclo de vida do app
-/// (solta em background, retoma em foreground).
+/// (solta em background, retoma em foreground) e o token de push registrado
+/// para o usuário logado.
 class AutoUniApp extends ConsumerStatefulWidget {
   const AutoUniApp({super.key});
 
@@ -40,6 +42,8 @@ class _AutoUniAppState extends ConsumerState<AutoUniApp> {
   @override
   Widget build(BuildContext context) {
     ref.watch(sessionRealtimeBindingProvider);
+    // Mantém o registro do token de push ligado à sessão (S6-T1).
+    ref.watch(pushRegistrationProvider);
     final config = ref.watch(appConfigProvider);
     final router = ref.watch(appRouterProvider);
 

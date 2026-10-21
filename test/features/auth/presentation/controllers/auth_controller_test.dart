@@ -4,6 +4,7 @@ import 'package:autouni_app/core/cache/cache_providers.dart';
 import 'package:autouni_app/core/cache/local_cache.dart';
 import 'package:autouni_app/core/network/api_exception.dart';
 import 'package:autouni_app/core/session/session_events.dart';
+import 'package:autouni_app/core/session/session_hooks.dart';
 import 'package:autouni_app/shared/devices/device_live_state.dart';
 import 'package:autouni_app/shared/models/campus/campus_enums.dart';
 import 'package:autouni_app/shared/realtime/device_events.dart';
@@ -190,6 +191,26 @@ void main() {
       verify(() => repository.logout()).called(1);
       expect(container.read(authControllerProvider).value, isNull);
       expect(await cache.read('buildings'), isNull);
+    });
+
+    test('roda os ganchos de logout antes de encerrar no backend', () async {
+      container = ProviderContainer.test(
+        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      );
+      await container.read(authControllerProvider.future);
+      final order = <String>[];
+      container.read(logoutHooksProvider).add(() async {
+        // a sessão ainda vale enquanto o gancho roda
+        expect(container.read(authControllerProvider).value, _user);
+        order.add('gancho');
+      });
+      when(() => repository.logout()).thenAnswer((_) async {
+        order.add('backend');
+      });
+
+      await container.read(authControllerProvider.notifier).logout();
+
+      expect(order, ['gancho', 'backend']);
     });
 
     test('descarta o estado ao vivo dos dispositivos', () async {

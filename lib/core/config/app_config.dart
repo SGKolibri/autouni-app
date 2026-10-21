@@ -1,3 +1,4 @@
+import 'firebase_config.dart';
 import 'flavor.dart';
 
 /// Configuração imutável do app, resolvida no bootstrap a partir do [Flavor]
@@ -16,6 +17,7 @@ class AppConfig {
     required this.showFlavorBanner,
     required this.connectTimeout,
     required this.receiveTimeout,
+    required this.firebase,
   });
 
   /// Endpoints padrão do ambiente de desenvolvimento (backend local).
@@ -50,6 +52,9 @@ class AppConfig {
   final Duration connectTimeout;
   final Duration receiveTimeout;
 
+  /// Firebase para o push (FCM); `null` = push desligado.
+  final FirebaseConfig? firebase;
+
   /// Monta a config de um [flavor], aplicando overrides opcionais.
   ///
   /// [apiBaseUrl] e [wsBaseUrl] normalmente vêm de `--dart-define`; um valor
@@ -59,6 +64,7 @@ class AppConfig {
     Flavor flavor, {
     String? apiBaseUrl,
     String? wsBaseUrl,
+    FirebaseConfig? firebase,
   }) {
     final isDev = flavor.isDev;
 
@@ -84,6 +90,7 @@ class AppConfig {
       showFlavorBanner: isDev,
       connectTimeout: _connectTimeout,
       receiveTimeout: _receiveTimeout,
+      firebase: firebase,
     );
   }
 
@@ -122,7 +129,8 @@ class AppConfig {
           enableVerboseLogging == other.enableVerboseLogging &&
           showFlavorBanner == other.showFlavorBanner &&
           connectTimeout == other.connectTimeout &&
-          receiveTimeout == other.receiveTimeout;
+          receiveTimeout == other.receiveTimeout &&
+          firebase == other.firebase;
 
   @override
   int get hashCode => Object.hash(
@@ -134,6 +142,7 @@ class AppConfig {
     showFlavorBanner,
     connectTimeout,
     receiveTimeout,
+    firebase,
   );
 
   @override

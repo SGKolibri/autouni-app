@@ -9,6 +9,7 @@ import 'package:autouni_app/features/dashboard/data/dashboard_repository.dart';
 import 'package:autouni_app/features/dashboard/domain/dashboard_models.dart';
 import 'package:autouni_app/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
+import 'package:autouni_app/shared/push/push_registration.dart';
 import 'package:autouni_app/shared/models/campus/campus_enums.dart';
 import 'package:autouni_app/shared/models/campus/campus_models.dart';
 import 'package:autouni_app/shared/models/notification_type.dart';
@@ -23,6 +24,16 @@ import '../../../support/campus_fixtures.dart';
 import '../../../support/pump_router_app.dart';
 
 class _MockRepository extends Mock implements DashboardRepository {}
+
+/// Push num estado fixo, sem plugin.
+class _FixedPush extends PushRegistration {
+  _FixedPush(this.status);
+
+  final PushStatus status;
+
+  @override
+  PushStatus build() => status;
+}
 
 DashboardOverview _overview({
   EnergySummary? energy = const EnergySummary(todayEnergyKwh: 42.5),
@@ -68,7 +79,10 @@ void main() {
 
   tearDown(() => events.close());
 
-  Future<GoRouter> pumpDashboard(WidgetTester tester) async {
+  Future<GoRouter> pumpDashboard(
+    WidgetTester tester, {
+    PushStatus push = PushStatus.unavailable,
+  }) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -81,6 +95,7 @@ void main() {
       ],
       overrides: [
         dashboardRepositoryProvider.overrideWithValue(repository),
+        pushRegistrationProvider.overrideWith(() => _FixedPush(push)),
         deviceEventsProvider.overrideWithValue(events.stream),
         realtimeStatusProvider.overrideWithValue(
           RealtimeConnectionStatus.connected,
@@ -116,6 +131,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(router.state.uri.toString(), AppPaths.energy());
+  });
+
+  testWidgets('convite de alertas no topo quando o sistema não perguntou', (
+    tester,
+  ) async {
+    await pumpDashboard(tester, push: PushStatus.promptable);
+
+    final card = tester.getTopLeft(find.byKey(const Key('push-prompt')));
+    final kpis = tester.getTopLeft(find.byType(KpiGrid));
+    expect(card.dy, lessThan(kpis.dy));
+  });
+
+  testWidgets('sem convite pendente, o Início não muda', (tester) async {
+    await pumpDashboard(tester, push: PushStatus.enabled);
+
+    expect(find.byKey(const Key('push-prompt')), findsNothing);
   });
 
   testWidgets('donut com a distribuição de status', (tester) async {

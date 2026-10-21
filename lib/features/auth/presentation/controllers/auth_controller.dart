@@ -6,6 +6,7 @@ import '../../../../core/biometrics/biometric_authenticator.dart';
 import '../../../../core/biometrics/biometric_providers.dart';
 import '../../../../core/cache/cache_providers.dart';
 import '../../../../core/session/session_events.dart';
+import '../../../../core/session/session_hooks.dart';
 import '../../../../shared/devices/device_live_state.dart';
 import '../../data/auth_data_providers.dart';
 import '../../data/biometrics/biometric_login_settings.dart';
@@ -121,7 +122,12 @@ class AuthController extends AsyncNotifier<User?> {
   /// Sai da conta: avisa o backend, apaga tokens, o cache local (que tem
   /// dados do usuário) e o estado ao vivo dos dispositivos. A preferência de biometria fica — sem sessão
   /// guardada, ela só volta a valer depois do próximo login por senha.
+  ///
+  /// Antes de tudo roda os ganchos de logout (ex.: remover o token de push
+  /// no backend), enquanto o JWT ainda vale.
   Future<void> logout() async {
+    await ref.read(logoutHooksProvider).run();
+    if (!ref.mounted) return;
     await ref.read(authRepositoryProvider).logout();
     await ref.read(localCacheProvider).clear();
     if (!ref.mounted) return;

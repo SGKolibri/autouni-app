@@ -18,4 +18,34 @@ abstract final class AppPaths {
 
   /// Lista global de dispositivos.
   static String get allDevices => '${AppTab.environments.path}/devices';
+
+  /// Raiz da tela de consumo de energia — tela cheia, fora das abas, para
+  /// abrir por cima de qualquer aba (dashboard, ambientes, ranking).
+  static const String energyRoot = '/energy';
+
+  /// Consumo de um escopo. [query] é o escopo serializado pela feature de
+  /// energia (`level`, `id`, `name`); vazio = campus.
+  static String energy([Map<String, String> query = const {}]) => Uri(
+    path: energyRoot,
+    queryParameters: query.isEmpty ? null : query,
+  ).toString();
+
+  /// Consumo de uma entidade da hierarquia ([level]: `building`, `floor`,
+  /// `room` ou `device`), para telas que não conhecem a feature de energia.
+  static String energyOf({
+    required String level,
+    required String id,
+    required String name,
+  }) => energy({'level': level, 'id': id, 'name': name});
+
+  /// Nova automação.
+  static String get newAutomation => '${AppTab.automations.path}/new';
+
+  /// Detalhe (histórico e ações) de uma automação.
+  static String automation(String automationId) =>
+      '${AppTab.automations.path}/$automationId';
+
+  /// Edição de uma automação.
+  static String editAutomation(String automationId) =>
+      '${automation(automationId)}/edit';
 }

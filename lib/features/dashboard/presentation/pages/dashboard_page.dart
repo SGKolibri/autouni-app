@@ -112,6 +112,7 @@ class _DashboardContent extends ConsumerWidget {
                 label: 'Consumo hoje',
                 value: energy == null ? '—' : formatKwh(energy.todayEnergyKwh),
                 icon: Icons.bolt,
+                onTap: () => context.push(AppPaths.energy()),
               ),
               KpiCard(
                 label: 'Alertas não lidos',

@@ -33,7 +33,19 @@ class RoomsPage extends ConsumerWidget {
     final live = ref.watch(deviceLiveStateProvider);
 
     return Scaffold(
-      appBar: LiveTopBar(title: floorName),
+      appBar: LiveTopBar(
+        title: floorName,
+        actions: [
+          IconButton(
+            key: const Key('floor-energy'),
+            tooltip: 'Consumo de energia',
+            icon: const Icon(Icons.bolt_outlined),
+            onPressed: () => context.push(
+              AppPaths.energyOf(level: 'floor', id: floorId, name: floorName),
+            ),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           LocationBreadcrumb(

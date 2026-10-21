@@ -22,7 +22,9 @@ lib/
 │   ├── auth/            # login, biometria, recuperação de senha, logout, ajustes da conta
 │   ├── dashboard/       # aba Início: KPIs, status, prédios, alertas recentes
 │   ├── environments/    # Prédios → Andares → Salas → detalhe da sala
-│   └── devices/         # lista global (busca, filtros, scroll infinito)
+│   ├── devices/         # lista global (busca, filtros, scroll infinito)
+│   ├── energy/          # consumo por período e nível: KPIs, histórico, potência, ranking
+│   └── automations/     # lista, toggle, executar, histórico, criar/editar (agenda → cron), excluir
 │
 └── shared/              # usado por mais de uma feature
     ├── design_system/   # tokens, tema e componentes (inclui estados vazio/erro/skeleton)

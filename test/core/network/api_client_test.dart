@@ -34,6 +34,27 @@ void main() {
       expect(adapter.requests.single.data, {'a': 1});
     });
 
+    for (final (method, call) in <(String, Future<Object?> Function(Dio))>[
+      ('PUT', (dio) => dio.putJson('/x', data: {'a': 1})),
+      ('PATCH', (dio) => dio.patchJson('/x', data: {'a': 1})),
+      ('DELETE', (dio) => dio.deleteJson('/x', data: {'a': 1})),
+    ]) {
+      test('${method.toLowerCase()}Json envia o corpo com $method', () async {
+        final adapter = FakeHttpAdapter.always(FakeResponse(200, body: {}));
+
+        await call(dioWith(adapter));
+
+        expect(adapter.requests.single.method, method);
+        expect(adapter.requests.single.data, {'a': 1});
+      });
+    }
+
+    test('deleteJson aceita 204 sem corpo', () async {
+      final adapter = FakeHttpAdapter.always(FakeResponse(204, body: ''));
+
+      expect(await dioWith(adapter).deleteJson('/x'), anyOf(isNull, ''));
+    });
+
     test('erros chegam como ApiException (com o interceptor)', () async {
       final dio = dioWith(FakeHttpAdapter.always(FakeResponse(404)));
 

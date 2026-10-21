@@ -77,6 +77,7 @@ void main() {
       routes: [
         GoRoute(path: '/dashboard', builder: (_, _) => const DashboardPage()),
         stubRoute(AppPaths.building('b1')),
+        stubRoute(AppPaths.energyRoot),
       ],
       overrides: [
         dashboardRepositoryProvider.overrideWithValue(repository),
@@ -104,6 +105,17 @@ void main() {
     expect(find.text('1 offline'), findsOneWidget);
     expect(kpi(tester, 'Consumo hoje'), '42,5 kWh');
     expect(kpi(tester, 'Alertas não lidos'), '0');
+  });
+
+  testWidgets('tocar no consumo de hoje abre a energia do campus', (
+    tester,
+  ) async {
+    final router = await pumpDashboard(tester);
+
+    await tester.tap(find.widgetWithText(KpiCard, 'Consumo hoje'));
+    await tester.pumpAndSettle();
+
+    expect(router.state.uri.toString(), AppPaths.energy());
   });
 
   testWidgets('donut com a distribuição de status', (tester) async {

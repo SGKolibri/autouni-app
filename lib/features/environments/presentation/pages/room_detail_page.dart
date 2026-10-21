@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_paths.dart';
 import '../../../../core/router/app_tab.dart';
@@ -94,6 +95,15 @@ class RoomDetailPage extends ConsumerWidget {
       appBar: LiveTopBar(
         title: room?.name ?? 'Sala',
         actions: [
+          if (room != null)
+            IconButton(
+              key: const Key('room-energy'),
+              tooltip: 'Consumo de energia',
+              icon: const Icon(Icons.bolt_outlined),
+              onPressed: () => context.push(
+                AppPaths.energyOf(level: 'room', id: room.id, name: room.name),
+              ),
+            ),
           if (room != null)
             PermissionGate(
               permission: AppPermission.bulkControlDevices,

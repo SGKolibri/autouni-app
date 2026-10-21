@@ -1,20 +1,28 @@
 name: CI
 
-# Roda a cada Pull Request
+# Roda a cada Pull Request e depois do merge nas branches de integração.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-
+  push:
+    branches: [main, develop]
 
 # Cancela execuções antigas do mesmo PR quando um novo push chega
 concurrency:
   group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+env:
+  # Versão fixa: goldens e `dart format` mudam entre versões do Flutter.
+  # Atualize junto com o time (e regenere os goldens se preciso).
+  FLUTTER_VERSION: 3.47.0
+  MIN_COVERAGE: 80
+
 jobs:
   lint-and-test:
     name: Lint & Testes
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
@@ -23,6 +31,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Instalar dependências
@@ -35,16 +44,34 @@ jobs:
         # exclui os arquivos gerados do check de formato
         run: >
           dart format --output=none --set-exit-if-changed
-          $(find lib test -name '*.dart' ! -name '*.g.dart' ! -name '*.freezed.dart')
+          $(find lib test tool -name '*.dart' ! -name '*.g.dart' ! -name '*.freezed.dart')
 
       - name: Análise estática (lint)
         run: flutter analyze
 
       - name: Rodar testes com cobertura
-        run: flutter test --coverage
+        # O teste gerado importa todo o lib/, para arquivos sem nenhum teste
+        # contarem como 0% em vez de sumirem do lcov.
+        run: |
+          dart run tool/coverage.dart prepare
+          flutter test --coverage
+          dart run tool/coverage.dart clean
 
       - name: Verificar limiar de cobertura
-        uses: VeryGoodOpenSource/very_good_coverage@v3
+        run: dart run tool/coverage.dart check --min=${{ env.MIN_COVERAGE }}
+
+      - name: Publicar diffs de golden
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
+          name: golden-failures
+          path: test/**/failures/
+          if-no-files-found: ignore
+
+      - name: Publicar relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
           path: coverage/lcov.info
-          min_coverage: 80
+          if-no-files-found: ignore

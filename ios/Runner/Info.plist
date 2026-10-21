@@ -66,5 +66,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>O AutoUni usa o Face ID para você entrar no app sem digitar a senha.</string>
 </dict>
 </plist>

@@ -30,6 +30,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
 import '../../../support/campus_fixtures.dart';
+import '../../../support/pump_router_app.dart';
 
 class _MockRepository extends Mock implements EnvironmentsRepository {}
 
@@ -106,6 +107,7 @@ void main() {
         AppTab.environments: (context, state) => const BuildingsPage(),
       },
       tabRoutes: {AppTab.environments: environmentsRoutes()},
+      outsideShellRoutes: [stubRoute(AppPaths.energyRoot)],
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
@@ -171,6 +173,43 @@ void main() {
       expect(find.byType(BuildingsPage), findsOneWidget);
     },
   );
+
+  for (final (label, location, key, expected) in [
+    (
+      'prédio',
+      AppPaths.building('b1'),
+      'building-energy',
+      {'level': 'building', 'id': 'b1', 'name': 'Bloco A'},
+    ),
+    (
+      'andar',
+      AppPaths.floor('b1', 'f1'),
+      'floor-energy',
+      {'level': 'floor', 'id': 'f1', 'name': '1º andar'},
+    ),
+    (
+      'sala',
+      AppPaths.room('b1', 'f1', 'r1'),
+      'room-energy',
+      {'level': 'room', 'id': 'r1', 'name': 'Sala 101'},
+    ),
+  ]) {
+    testWidgets('consumo do $label abre a tela de energia e volta (S5-T1)', (
+      tester,
+    ) async {
+      final router = await pumpEnvironments(tester, initialLocation: location);
+
+      await tester.tap(find.byKey(Key(key)));
+      await tester.pumpAndSettle();
+
+      expect(router.state.uri.path, AppPaths.energyRoot);
+      expect(router.state.uri.queryParameters, expected);
+
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, location);
+    });
+  }
 
   testWidgets('o breadcrumb mostra o caminho completo e volta ao andar', (
     tester,

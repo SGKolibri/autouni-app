@@ -92,6 +92,9 @@ abstract class Device with _$Device {
 
     /// Alcançável pelo broker MQTT. Offline = controle indisponível.
     @Default(false) bool online,
+
+    /// Tópico MQTT base; comandos vão para `{mqttTopic}/command`.
+    String? mqttTopic,
     Map<String, dynamic>? metadata,
     DateTime? lastSeen,
     Room? room,

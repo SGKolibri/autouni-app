@@ -86,6 +86,7 @@ void main() {
       expect(device.status, DeviceStatus.on);
       expect(device.isOn, isTrue);
       expect(device.online, isTrue);
+      expect(device.mqttTopic, 'bloco-a/1/101/lum-1');
       expect(device.lastSeen, DateTime.utc(2026, 10, 14, 10));
       expect(device.locationLabel, 'Sala 101 · 1º andar · Bloco A');
     });

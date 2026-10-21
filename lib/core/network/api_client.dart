@@ -11,6 +11,16 @@ extension ApiClient on Dio {
   Future<Object?> postJson(String path, {Object? data}) =>
       _send(() => post<dynamic>(path, data: data));
 
+  Future<Object?> putJson(String path, {Object? data}) =>
+      _send(() => put<dynamic>(path, data: data));
+
+  Future<Object?> patchJson(String path, {Object? data}) =>
+      _send(() => patch<dynamic>(path, data: data));
+
+  /// Aceita `204 No Content` (devolve `null`/vazio).
+  Future<Object?> deleteJson(String path, {Object? data}) =>
+      _send(() => delete<dynamic>(path, data: data));
+
   Future<Object?> _send(Future<Response<dynamic>> Function() request) async {
     try {
       return (await request()).data;

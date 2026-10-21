@@ -8,6 +8,15 @@ String formatKwh(double kwh) {
   return '${formatDecimal(kwh, decimals)} kWh';
 }
 
+/// Potência: `1.234` → `"1,23 kW"` (mesmas casas de [formatKwh]).
+String formatKw(double kw) {
+  final decimals = kw.abs() < 10 ? 2 : 1;
+  return '${formatDecimal(kw, decimals)} kW';
+}
+
+/// Energia de uma leitura: `1500.4` → `"1.500 Wh"`.
+String formatWh(double wh) => '${formatDecimal(wh, 0)} Wh';
+
 /// Número com vírgula decimal e ponto de milhar: `1234.5` → `"1.234,5"`.
 String formatDecimal(num value, [int decimals = 1]) {
   final fixed = value.toDouble().toStringAsFixed(decimals);
@@ -33,6 +42,22 @@ String formatClock(DateTime instant, {DateTime? now}) {
       local.month == today.month &&
       local.day == today.day;
   return sameDay ? time : '${_two(local.day)}/${_two(local.month)} $time';
+}
+
+/// `"07/03"`, no fuso local.
+String formatDayMonth(DateTime instant) {
+  final local = instant.toLocal();
+  return '${_two(local.day)}/${_two(local.month)}';
+}
+
+/// `"09h"`, no fuso local.
+String formatHour(DateTime instant) => '${_two(instant.toLocal().hour)}h';
+
+/// `"07/03/2026 09:05"`, no fuso local.
+String formatDateTime(DateTime instant) {
+  final local = instant.toLocal();
+  return '${formatDayMonth(local)}/${local.year} '
+      '${_two(local.hour)}:${_two(local.minute)}';
 }
 
 String _two(int value) => value.toString().padLeft(2, '0');

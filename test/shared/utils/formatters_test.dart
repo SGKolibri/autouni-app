@@ -17,6 +17,23 @@ void main() {
     expect(formatKwh(0), '0,00 kWh');
   });
 
+  test('formatKw e formatWh', () {
+    expect(formatKw(1.234), '1,23 kW');
+    expect(formatKw(12.34), '12,3 kW');
+    expect(formatWh(250), '250 Wh');
+    expect(formatWh(1500.4), '1.500 Wh');
+  });
+
+  test('formatDayMonth e formatHour', () {
+    final instant = DateTime(2026, 3, 7, 9, 5);
+    expect(formatDayMonth(instant), '07/03');
+    expect(formatHour(instant), '09h');
+  });
+
+  test('formatDateTime mostra data e hora', () {
+    expect(formatDateTime(DateTime(2026, 3, 7, 9, 5)), '07/03/2026 09:05');
+  });
+
   test('formatClock mostra só a hora hoje e a data em outro dia', () {
     final now = DateTime(2026, 10, 14, 15);
     expect(formatClock(DateTime(2026, 10, 14, 9, 5), now: now), '09:05');

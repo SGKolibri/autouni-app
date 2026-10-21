@@ -14,9 +14,10 @@ lib/
 │   ├── cache/           # cache local (Hive) + leitura "cache primeiro, depois rede"
 │   ├── config/          # flavors, AppConfig, providers de config, política de retry
 │   ├── network/         # dio + interceptors (JWT, refresh, erro), helpers JSON
+│   ├── push/            # abstração do FCM (firebase_messaging) e inicialização do Firebase
 │   ├── realtime/        # cliente WebSocket (socket_io)
 │   ├── router/          # shell com bottom nav (5 abas), guard de sessão, caminhos
-│   └── session/         # eventos de sessão (expiração) da rede para a autenticação
+│   └── session/         # eventos de sessão, usuário logado e ganchos de logout
 │
 ├── features/            # uma pasta por módulo do produto
 │   ├── auth/            # login, biometria, recuperação de senha, logout, ajustes da conta
@@ -30,6 +31,7 @@ lib/
     ├── design_system/   # tokens, tema e componentes (inclui estados vazio/erro/skeleton)
     ├── devices/         # controle de dispositivos: estado ao vivo, comandos, widgets
     ├── models/          # UserRole, NotificationType, Building/Floor/Room/Device
+    ├── push/            # registro do token de push e convite para ativar os alertas
     ├── rbac/            # permissões por papel + PermissionGate
     ├── realtime/        # eventos device:status / device:online
     ├── utils/           # formatação pt-BR, mensagens de erro

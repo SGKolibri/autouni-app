@@ -105,4 +105,50 @@ void main() {
       );
     });
   });
+
+  group('getBytes', () {
+    test('baixa o binário e lê o nome do Content-Disposition', () async {
+      final adapter = FakeHttpAdapter.always(
+        FakeResponse(
+          200,
+          body: 'conteúdo,csv',
+          headers: {
+            'content-type': ['text/csv'],
+            'content-disposition': ['attachment; filename="r1.csv"'],
+          },
+        ),
+      );
+
+      final file = await dioWith(adapter).getBytes('/reports/r1/download');
+
+      expect(String.fromCharCodes(file.bytes), contains('csv'));
+      expect(file.fileName, 'r1.csv');
+      expect(adapter.requests.single.responseType, ResponseType.bytes);
+    });
+
+    test('erro vira ApiException', () async {
+      final dio = dioWith(FakeHttpAdapter.always(FakeResponse(400)));
+
+      await expectLater(
+        dio.getBytes('/reports/r1/download'),
+        throwsA(isA<BadRequestException>()),
+      );
+    });
+  });
+
+  group('fileNameFromDisposition', () {
+    for (final (header, expected) in [
+      ('attachment; filename="r1.pdf"', 'r1.pdf'),
+      ('attachment; filename=r1.xlsx', 'r1.xlsx'),
+      ("attachment; filename*=UTF-8''Relat%C3%B3rio.pdf", 'Relatório.pdf'),
+      ('attachment; filename="../../etc/passwd"', 'passwd'),
+      ('attachment; filename="%E0%A4%A.pdf"', '%E0%A4%A.pdf'),
+      ('inline', null),
+      (null, null),
+    ]) {
+      test('$header → $expected', () {
+        expect(fileNameFromDisposition(header), expected);
+      });
+    }
+  });
 }

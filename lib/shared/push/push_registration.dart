@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_exception.dart';
+import '../../core/preferences/app_preferences.dart';
 import '../../core/push/push_messaging.dart';
 import '../../core/push/push_providers.dart';
 import '../../core/session/session_hooks.dart';
@@ -33,6 +34,10 @@ enum PushStatus {
   /// Permitido, mas o token não foi registrado (sem token do FCM ou backend
   /// fora). Tenta de novo na próxima sessão.
   failed,
+
+  /// O usuário desligou os alertas por push nos Ajustes (preferência do
+  /// aparelho): nada é registrado e o convite não aparece.
+  off,
 }
 
 /// Plataforma do aparelho (sobrescrita nos testes).
@@ -103,8 +108,32 @@ class PushRegistration extends Notifier<PushStatus> {
       removeHook();
       session.close();
     });
+    if (!ref.read(appPreferencesProvider).pushEnabled) return PushStatus.off;
     unawaited(_check(session));
     return PushStatus.checking;
+  }
+
+  /// Liga/desliga o push neste aparelho (Ajustes) e grava a preferência.
+  ///
+  /// Desligar remove o token no backend e no FCM. Ligar volta ao fluxo
+  /// normal: com permissão, registra; sem resposta do sistema, abre o prompt
+  /// direto (o usuário acabou de pedir); recusado, fica [PushStatus.denied].
+  Future<void> setEnabled(bool enabled) async {
+    await ref.read(appPreferencesProvider.notifier).setPushEnabled(enabled);
+    final session = _session;
+    if (session == null || !_isCurrent(session)) return;
+    if (!enabled) {
+      state = PushStatus.off;
+      await _unregister(session);
+      return;
+    }
+    state = PushStatus.checking;
+    await _check(session);
+    if (_isCurrent(session) &&
+        (state == PushStatus.promptable || state == PushStatus.dismissed)) {
+      state = PushStatus.promptable;
+      await accept();
+    }
   }
 
   bool _isCurrent(_PushSession session) =>
@@ -167,7 +196,9 @@ class PushRegistration extends Notifier<PushStatus> {
   Future<void> _unregister(_PushSession session) async {
     final token = session.token;
     session.token = null;
-    await session.refresh?.cancel();
+    // Não espera o cancelamento: remover o token no backend não depende dele
+    // (e o logout fica esperando este gancho).
+    unawaited(session.refresh?.cancel());
     session.refresh = null;
     if (token == null) return;
     try {

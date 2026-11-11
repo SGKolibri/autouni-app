@@ -10,6 +10,7 @@ import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/pages/account_settings_page.dart';
 import '../features/auth/presentation/pages/forgot_password_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
+import '../features/auth/presentation/settings_routes.dart';
 import '../features/automations/presentation/automations_routes.dart';
 import '../features/automations/presentation/pages/automations_page.dart';
 import '../features/dashboard/presentation/pages/dashboard_page.dart';
@@ -17,6 +18,8 @@ import '../features/devices/presentation/devices_routes.dart';
 import '../features/energy/presentation/energy_routes.dart';
 import '../features/environments/presentation/environments_routes.dart';
 import '../features/environments/presentation/pages/buildings_page.dart';
+import '../features/notifications/presentation/pages/notifications_page.dart';
+import '../features/reports/presentation/reports_routes.dart';
 
 /// Instância única do [GoRouter] do app, já com as telas das features e o
 /// guard de sessão ligado ao [authControllerProvider].
@@ -39,16 +42,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordPage(),
       ),
       ...energyRoutes(),
+      ...reportsRoutes(),
     ],
     tabPages: {
       AppTab.dashboard: (context, state) => const DashboardPage(),
       AppTab.environments: (context, state) => const BuildingsPage(),
       AppTab.automations: (context, state) => const AutomationsPage(),
+      AppTab.notifications: (context, state) => const NotificationsPage(),
       AppTab.settings: (context, state) => const AccountSettingsPage(),
     },
     tabRoutes: {
       AppTab.environments: [...environmentsRoutes(), ...devicesRoutes()],
       AppTab.automations: automationsRoutes(),
+      AppTab.settings: settingsRoutes(),
     },
   );
   ref.onDispose(() {

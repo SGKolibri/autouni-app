@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/app_config.dart';
 import 'core/config/app_config_provider.dart';
+import 'core/preferences/app_preferences.dart';
 import 'core/realtime/realtime_providers.dart';
 import 'features/auth/presentation/controllers/session_realtime_binding.dart';
 import 'routing/app_router_provider.dart';
+import 'routing/push_navigation.dart';
 import 'shared/push/push_registration.dart';
 import 'shared/design_system/design_system.dart';
 
@@ -44,19 +47,35 @@ class _AutoUniAppState extends ConsumerState<AutoUniApp> {
     ref.watch(sessionRealtimeBindingProvider);
     // Mantém o registro do token de push ligado à sessão (S6-T1).
     ref.watch(pushRegistrationProvider);
+    // Toque no push abre o destino; push com o app aberto vira aviso (S6-T2).
+    ref.watch(pushNavigationProvider);
     final config = ref.watch(appConfigProvider);
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(
+      appPreferencesProvider.select((prefs) => prefs.themeMode),
+    );
 
     return MaterialApp.router(
       title: config.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
+      // Textos do app são pt-BR; os componentes do sistema (seletor de
+      // datas, rótulos de acessibilidade) seguem o mesmo idioma.
+      locale: appLocale,
+      supportedLocales: const [appLocale],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: router,
+      scaffoldMessengerKey: ref.watch(rootScaffoldMessengerKeyProvider),
       builder: (context, child) => _FlavorOverlay(config: config, child: child),
     );
   }
 }
+
+/// Idioma do app. Só pt-BR por enquanto: os textos não estão em arquivos de
+/// tradução (ARB).
+const Locale appLocale = Locale('pt', 'BR');
 
 /// Faixa de identificação do ambiente, sobreposta à UI apenas quando
 /// [AppConfig.showFlavorBanner] está ligado (dev).

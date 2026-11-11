@@ -35,7 +35,7 @@ void main() {
         200,
         body: {'todayEnergyKwh': 42.5, 'hasData': true, 'count': 10},
       ),
-      '/notifications/me': FakeResponse(
+      '/notifications/user/u1': FakeResponse(
         200,
         body: [
           {
@@ -64,6 +64,7 @@ void main() {
       dio: Dio(BaseOptions(baseUrl: 'https://api.test'))
         ..httpClientAdapter = adapter,
       cache: cache,
+      userId: 'u1',
     );
   });
 
@@ -85,7 +86,7 @@ void main() {
 
   test('consumo e alertas são opcionais', () async {
     responses['/energy/stats'] = FakeResponse(500);
-    responses['/notifications/me'] = FakeResponse(403);
+    responses['/notifications/user/u1'] = FakeResponse(403);
 
     final overview = (await repository.watchOverview().last).data;
 

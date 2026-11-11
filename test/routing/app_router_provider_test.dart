@@ -17,6 +17,8 @@ import 'package:autouni_app/features/automations/presentation/pages/automations_
 import 'package:autouni_app/features/dashboard/data/dashboard_repository.dart';
 import 'package:autouni_app/features/energy/data/energy_repository.dart';
 import 'package:autouni_app/features/energy/presentation/pages/energy_page.dart';
+import 'package:autouni_app/features/notifications/data/notifications_repository.dart';
+import 'package:autouni_app/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:autouni_app/routing/app_router_provider.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:flutter/material.dart';
@@ -41,6 +43,9 @@ void main() {
           EmptyAutomationsRepository(),
         ),
         energyRepositoryProvider.overrideWithValue(EmptyEnergyRepository()),
+        notificationsRepositoryProvider.overrideWithValue(
+          EmptyNotificationsRepository(),
+        ),
         appConfigProvider.overrideWithValue(AppConfig.forFlavor(Flavor.prod)),
         authRepositoryProvider.overrideWithValue(repository),
         realtimeClientProvider.overrideWithValue(
@@ -133,6 +138,11 @@ void main() {
 
     router.go(AppTab.settings.path);
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('settings-logout')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.byKey(const Key('settings-logout')));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Sair'));
@@ -151,6 +161,18 @@ void main() {
 
     expect(find.byType(AutomationsPage), findsOneWidget);
     expect(find.text('Nenhuma automação'), findsOneWidget);
+  });
+
+  testWidgets('a aba Alertas abre a central de notificações', (tester) async {
+    when(() => repository.restoreSession()).thenAnswer((_) async => _user);
+    final (_, router) = await pumpApp(tester);
+    await tester.pumpAndSettle();
+
+    router.go(AppTab.notifications.path);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NotificationsPage), findsOneWidget);
+    expect(find.text('Nenhum alerta'), findsOneWidget);
   });
 
   testWidgets('a tela de energia abre por cima das abas', (tester) async {

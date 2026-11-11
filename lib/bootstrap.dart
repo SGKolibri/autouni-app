@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 
 import 'app.dart';
@@ -11,13 +12,16 @@ import 'core/config/firebase_config.dart';
 import 'core/config/flavor.dart';
 import 'core/config/provider_retry.dart';
 import 'core/network/network_providers.dart';
+import 'core/preferences/app_preferences.dart';
 import 'core/network/secure_auth_token_store.dart';
 import 'core/push/firebase_push_messaging.dart';
 import 'core/push/push_messaging.dart';
 import 'core/push/push_providers.dart';
+import 'core/router/tab_badges.dart';
 import 'core/session/session_hooks.dart';
 import 'features/auth/data/biometrics/biometric_login_settings.dart';
 import 'features/auth/presentation/controllers/auth_controller.dart';
+import 'features/notifications/presentation/providers/notifications_providers.dart';
 import 'shared/push/push_prompt_store.dart';
 import 'shared/rbac/rbac_providers.dart';
 
@@ -26,12 +30,14 @@ import 'shared/rbac/rbac_providers.dart';
 /// cache local e o papel do usuário logado para o RBAC. Separado de
 /// [runAutoUni] para poder ser exercido em testes de widget sem `runApp`.
 ///
-/// Sem [cache], usa um cache só em memória (testes). Sem [push], o push fica
-/// desligado.
+/// Sem [cache] e [preferences], usa versões só em memória (testes). Sem
+/// [push], o push fica desligado.
 Widget buildAppRoot(
   AppConfig config, {
   LocalCache? cache,
   PushMessaging? push,
+  PreferencesStore? preferences,
+  List<Override> overrides = const [],
 }) {
   return ProviderScope(
     retry: noAutomaticRetry,
@@ -43,6 +49,8 @@ Widget buildAppRoot(
         (ref) => SecureBiometricLoginSettings(),
       ),
       if (cache != null) localCacheProvider.overrideWithValue(cache),
+      if (preferences != null)
+        preferencesStoreProvider.overrideWithValue(preferences),
       if (push != null) ...[
         pushMessagingProvider.overrideWithValue(push),
         pushPromptStoreProvider.overrideWith((ref) => SecurePushPromptStore()),
@@ -54,6 +62,12 @@ Widget buildAppRoot(
       sessionUserIdProvider.overrideWith(
         (ref) => ref.watch(authControllerProvider).value?.id,
       ),
+      // `core/` não conhece a central: o badge vem da contagem dela.
+      unreadAlertsCountProvider.overrideWith(
+        (ref) => ref.watch(unreadNotificationsCountProvider),
+      ),
+      // Testes de ponta a ponta: backend em memória, push e biometria falsos.
+      ...overrides,
     ],
     child: const AutoUniApp(),
   );
@@ -91,7 +105,11 @@ Future<void> runAutoUni(Flavor flavor) async {
 
   await Hive.initFlutter();
   final cache = await HiveLocalCache.open();
+  // Aberta antes do primeiro frame: o tema escolhido já vale na abertura.
+  final preferences = await HivePreferencesStore.open();
   final push = await initFirebasePush(config.firebase);
 
-  runApp(buildAppRoot(config, cache: cache, push: push));
+  runApp(
+    buildAppRoot(config, cache: cache, push: push, preferences: preferences),
+  );
 }

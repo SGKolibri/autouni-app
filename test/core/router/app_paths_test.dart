@@ -9,6 +9,10 @@ void main() {
       AppPaths.room('b1', 'f1', 'r1'),
       '/environments/buildings/b1/floors/f1/rooms/r1',
     );
+    expect(
+      AppPaths.room('b1', 'f1', 'r1', deviceId: 'd1'),
+      '/environments/buildings/b1/floors/f1/rooms/r1?device=d1',
+    );
     expect(AppPaths.allDevices, '/environments/devices');
   });
 

@@ -19,7 +19,7 @@ abstract class EnergySummary with _$EnergySummary {
       _$EnergySummaryFromJson(json);
 }
 
-/// Notificação do usuário (`GET /notifications/me`), usada nos alertas
+/// Notificação do usuário (`GET /notifications/user/:userId`), usada nos alertas
 /// recentes.
 @freezed
 abstract class DashboardAlert with _$DashboardAlert {

@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_paths.dart';
 import '../../../../core/router/app_tab.dart';
+import '../../../../core/router/tab_badges.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/devices/device_counts.dart';
 import '../../../../shared/devices/device_live_state.dart';
+import '../../../../shared/push/push_prompt_card.dart';
 import '../../../../shared/utils/formatters.dart';
 import '../../../../shared/widgets/cached_async_view.dart';
 import '../../../../shared/widgets/live_top_bar.dart';
@@ -81,6 +83,16 @@ class _DashboardContent extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xl),
       children: [
+        // Convite para os alertas: aparece depois do login, no Início, e só
+        // enquanto o sistema não perguntou (S6-T1).
+        const PushPromptCard(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            0,
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.lg,
@@ -116,7 +128,9 @@ class _DashboardContent extends ConsumerWidget {
               ),
               KpiCard(
                 label: 'Alertas não lidos',
-                value: '${overview.unreadAlerts}',
+                // a central (badge) é a fonte mais atual; sem ela, o Início
+                value:
+                    '${ref.watch(unreadAlertsCountProvider) ?? overview.unreadAlerts}',
                 icon: Icons.notifications_outlined,
                 onTap: () => context.go(AppTab.notifications.path),
               ),

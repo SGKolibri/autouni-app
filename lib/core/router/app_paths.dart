@@ -13,8 +13,18 @@ abstract final class AppPaths {
   static String floor(String buildingId, String floorId) =>
       '${building(buildingId)}/floors/$floorId';
 
-  static String room(String buildingId, String floorId, String roomId) =>
-      '${floor(buildingId, floorId)}/rooms/$roomId';
+  /// Com [deviceId], a sala abre com a ficha desse dispositivo (deep link).
+  static String room(
+    String buildingId,
+    String floorId,
+    String roomId, {
+    String? deviceId,
+  }) {
+    final path = '${floor(buildingId, floorId)}/rooms/$roomId';
+    return deviceId == null
+        ? path
+        : Uri(path: path, queryParameters: {'device': deviceId}).toString();
+  }
 
   /// Lista global de dispositivos.
   static String get allDevices => '${AppTab.environments.path}/devices';
@@ -48,4 +58,18 @@ abstract final class AppPaths {
   /// Edição de uma automação.
   static String editAutomation(String automationId) =>
       '${automation(automationId)}/edit';
+
+  /// Relatórios — tela cheia, fora das abas (aberta pelos Ajustes e pelos
+  /// alertas de "relatório pronto").
+  static const String reportsRoot = '/reports';
+
+  static String get newReport => '$reportsRoot/new';
+
+  static String report(String reportId) => '$reportsRoot/$reportId';
+
+  /// Perfil do usuário (nome e telefone), na aba Ajustes.
+  static String get profile => '${AppTab.settings.path}/profile';
+
+  /// Trocar senha, na aba Ajustes.
+  static String get changePassword => '${AppTab.settings.path}/password';
 }

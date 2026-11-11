@@ -172,12 +172,32 @@ void main() {
   });
 
   group('reconcile', () {
-    test('descarta alterações de estado já refletidas na rede', () {
+    test('o estado mais novo da rede passa a valer', () {
       emit(const DeviceStatusChanged(deviceId: 'd1', status: DeviceStatus.on));
 
-      notifier().reconcile([device()]);
+      notifier().reconcile([device(online: false)]);
 
-      expect(live().overrides, isEmpty);
+      final applied = live().apply(device(status: DeviceStatus.on));
+      expect((applied.status, applied.online), (DeviceStatus.off, false));
+    });
+
+    test('telas com dados antigos continuam vendo o comando já confirmado '
+        '(regressão vista no emulador)', () {
+      // Comando na sala: d1 ligado e confirmado.
+      final ticket = notifier().begin(
+        'd1',
+        const DeviceOverride(status: DeviceStatus.on),
+      );
+      notifier().confirm(
+        ticket,
+        server: device(status: DeviceStatus.on),
+        awaitingHardware: false,
+      );
+      // A sala recarrega e já traz d1 ligado.
+      notifier().reconcile([device(status: DeviceStatus.on)]);
+
+      // O Início ainda tem os dados de antes do comando (d1 desligado).
+      expect(live().apply(device()).status, DeviceStatus.on);
     });
 
     test('mantém os ajustes (o backend não os persiste)', () {
@@ -193,7 +213,7 @@ void main() {
 
       notifier().reconcile([device(status: DeviceStatus.on)]);
 
-      expect(live().overrides['d1']?.status, isNull);
+      expect(live().overrides['d1']?.status, DeviceStatus.on);
       expect(live().overrides['d1']?.intensity, 30);
     });
 

@@ -16,11 +16,13 @@ abstract final class AppPalette {
   static const Color cloud = Color(0xFFF4F6F8);
   static const Color white = Color(0xFFFFFFFF);
 
-  // Status.
-  static const Color success = Color(0xFF1F9D57);
-  static const Color warning = Color(0xFFC8860B);
-  static const Color info = Color(0xFF2A6DB0);
-  static const Color danger = Color(0xFFD1382C);
+  // Status (tema claro). Escuros o bastante para texto pequeno (badges de
+  // 11 px) passar no WCAG AA (≥ 4,5:1) sobre os fundos de status, o fundo
+  // da tela e cards brancos.
+  static const Color success = Color(0xFF15703D);
+  static const Color warning = Color(0xFF8A5A00);
+  static const Color info = Color(0xFF225C96);
+  static const Color danger = Color(0xFFB42318);
 
   static const Color successSurfaceLight = Color(0xFFE1F4E9);
   static const Color warningSurfaceLight = Color(0xFFFBEFD6);

@@ -7,6 +7,7 @@ import '../../../core/cache/local_cache.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/network_providers.dart';
+import '../../../core/session/session_hooks.dart';
 import '../../../shared/models/campus/campus_models.dart';
 import '../domain/dashboard_models.dart';
 
@@ -18,12 +19,20 @@ abstract interface class DashboardRepository {
 }
 
 class HttpDashboardRepository implements DashboardRepository {
-  HttpDashboardRepository({required this._dio, required this._cache});
+  HttpDashboardRepository({
+    required this._dio,
+    required this._cache,
+    this._userId,
+  });
 
   static const String cacheKey = 'dashboard';
 
   final Dio _dio;
   final LocalCache _cache;
+
+  /// Dono dos alertas. `/notifications/me` do backend responde 500 (passa o
+  /// JWT inteiro como `userId`), então os alertas vêm da rota por usuário.
+  final String? _userId;
 
   @override
   Stream<Cached<DashboardOverview>> watchOverview() => cacheThenNetwork(
@@ -37,7 +46,10 @@ class HttpDashboardRepository implements DashboardRepository {
     final energy = _optional(
       _dio.getJson('/energy/stats', query: {'period': 'today'}),
     );
-    final alerts = _optional(_dio.getJson('/notifications/me'));
+    final userId = _userId;
+    final alerts = userId == null
+        ? Future<Object?>.value()
+        : _optional(_dio.getJson('/notifications/user/$userId'));
     final buildings = await _dio.getJson('/buildings');
     return {
       'buildings': buildings,
@@ -77,6 +89,7 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>(
   (ref) => HttpDashboardRepository(
     dio: ref.watch(dioProvider),
     cache: ref.watch(localCacheProvider),
+    userId: ref.watch(sessionUserIdProvider),
   ),
   name: 'dashboardRepositoryProvider',
 );

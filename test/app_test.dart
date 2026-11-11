@@ -5,6 +5,7 @@ import 'package:autouni_app/core/config/app_config_provider.dart';
 import 'package:autouni_app/core/cache/cache_providers.dart';
 import 'package:autouni_app/core/cache/local_cache.dart';
 import 'package:autouni_app/core/config/flavor.dart';
+import 'package:autouni_app/core/preferences/app_preferences.dart';
 import 'package:autouni_app/core/realtime/realtime_providers.dart';
 import 'package:autouni_app/features/auth/data/auth_data_providers.dart';
 import 'package:autouni_app/features/auth/domain/models/user.dart';
@@ -12,6 +13,11 @@ import 'package:autouni_app/features/auth/domain/repositories/auth_repository.da
 import 'package:autouni_app/features/auth/presentation/pages/login_page.dart';
 import 'package:autouni_app/features/dashboard/data/dashboard_repository.dart';
 import 'package:autouni_app/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:autouni_app/core/push/push_messaging.dart';
+import 'package:autouni_app/core/push/push_providers.dart';
+import 'package:autouni_app/core/session/session_hooks.dart';
+import 'package:autouni_app/shared/push/push_prompt_store.dart';
+import 'package:autouni_app/shared/push/push_registration.dart';
 import 'package:autouni_app/shared/rbac/rbac_providers.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mocktail/mocktail.dart';
@@ -27,6 +33,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+class _MockPushMessaging extends Mock implements PushMessaging {}
 
 const _user = User(id: 'u1', email: 'ana@uni.br', name: 'Ana');
 
@@ -116,6 +124,35 @@ void main() {
       expect(find.text('DEV'), findsOneWidget);
     });
 
+    testWidgets('segue o tema escolhido nos Ajustes e fala pt-BR', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appConfigProvider.overrideWithValue(
+              AppConfig.forFlavor(Flavor.prod),
+            ),
+            authRepositoryProvider.overrideWithValue(repository),
+            realtimeClientProvider.overrideWithValue(realtime),
+            dashboardRepositoryProvider.overrideWithValue(
+              EmptyDashboardRepository(),
+            ),
+            preferencesStoreProvider.overrideWithValue(
+              InMemoryPreferencesStore(
+                const AppPreferences(themeMode: ThemeMode.dark),
+              ),
+            ),
+          ],
+          child: const AutoUniApp(),
+        ),
+      );
+
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(app.themeMode, ThemeMode.dark);
+      expect(app.locale, const Locale('pt', 'BR'));
+    });
+
     testWidgets('usa os temas claro e escuro do design system', (tester) async {
       await tester.pumpWidget(appWith(AppConfig.forFlavor(Flavor.prod)));
 
@@ -183,6 +220,47 @@ void main() {
         container.read(biometricLoginSettingsProvider),
         isA<SecureBiometricLoginSettings>(),
       );
+    });
+
+    testWidgets('sem Firebase, push desligado e sem sessão não há usuário', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildAppRoot(AppConfig.forFlavor(Flavor.prod)));
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AutoUniApp)),
+      );
+      expect(container.read(pushMessagingProvider), isNull);
+      expect(container.read(sessionUserIdProvider), isNull);
+      expect(container.read(pushRegistrationProvider), PushStatus.unavailable);
+    });
+
+    testWidgets('com push, injeta o plugin e guarda o convite no seguro', (
+      tester,
+    ) async {
+      final push = _MockPushMessaging();
+      when(() => push.onMessageOpened).thenAnswer((_) => const Stream.empty());
+      when(() => push.onForegroundMessage)
+          .thenAnswer((_) => const Stream.empty());
+      when(() => push.initialMessage()).thenAnswer((_) async => null);
+      await tester.pumpWidget(
+        buildAppRoot(AppConfig.forFlavor(Flavor.prod), push: push),
+      );
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AutoUniApp)),
+      );
+      expect(container.read(pushMessagingProvider), same(push));
+      expect(
+        container.read(pushPromptStoreProvider),
+        isA<SecurePushPromptStore>(),
+      );
+      await tester.pumpAndSettle();
+      // deslogado: só escuta pushes tocados; não pede permissão nem token
+      verifyNever(() => push.permission());
+      verifyNever(() => push.requestPermission());
+      verifyNever(() => push.getToken());
+      verify(() => push.initialMessage()).called(1);
     });
   });
 }

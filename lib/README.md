@@ -7,29 +7,35 @@ lib/
 ├── main_prod.dart       # entrypoint de produção
 ├── bootstrap.dart       # ProviderScope raiz com as implementações de produção + runApp
 ├── app.dart             # AutoUniApp (MaterialApp.router + tema + tempo real/ciclo de vida)
-├── routing/             # monta o GoRouter com as telas das features + guard de sessão
+├── routing/             # monta o GoRouter com as telas das features + guard de sessão + push → navegação
 │
 ├── core/                # infraestrutura transversal, sem regra de negócio
 │   ├── biometrics/      # abstração da biometria (local_auth)
 │   ├── cache/           # cache local (Hive) + leitura "cache primeiro, depois rede"
 │   ├── config/          # flavors, AppConfig, providers de config, política de retry
-│   ├── network/         # dio + interceptors (JWT, refresh, erro), helpers JSON
+│   ├── files/           # arquivos baixados: salvar, abrir no visualizador, compartilhar
+│   ├── network/         # dio + interceptors (JWT, refresh, erro), helpers JSON e download
+│   ├── preferences/     # preferências do aparelho (tema, push) persistidas no Hive
+│   ├── push/            # abstração do FCM (firebase_messaging) e inicialização do Firebase
 │   ├── realtime/        # cliente WebSocket (socket_io)
 │   ├── router/          # shell com bottom nav (5 abas), guard de sessão, caminhos
-│   └── session/         # eventos de sessão (expiração) da rede para a autenticação
+│   └── session/         # eventos de sessão, usuário logado e ganchos de logout
 │
 ├── features/            # uma pasta por módulo do produto
-│   ├── auth/            # login, biometria, recuperação de senha, logout, ajustes da conta
+│   ├── auth/            # login, biometria, recuperação de senha, logout, perfil, senha, Ajustes
 │   ├── dashboard/       # aba Início: KPIs, status, prédios, alertas recentes
 │   ├── environments/    # Prédios → Andares → Salas → detalhe da sala
 │   ├── devices/         # lista global (busca, filtros, scroll infinito)
 │   ├── energy/          # consumo por período e nível: KPIs, histórico, potência, ranking
-│   └── automations/     # lista, toggle, executar, histórico, criar/editar (agenda → cron), excluir
+│   ├── automations/     # lista, toggle, executar, histórico, criar/editar (agenda → cron), excluir
+│   ├── notifications/   # central de alertas: filtros, lido/não lido, deep link (lista e push)
+│   └── reports/         # gerar (tipo/período/local/formato), status ao vivo, abrir e compartilhar
 │
 └── shared/              # usado por mais de uma feature
     ├── design_system/   # tokens, tema e componentes (inclui estados vazio/erro/skeleton)
     ├── devices/         # controle de dispositivos: estado ao vivo, comandos, widgets
     ├── models/          # UserRole, NotificationType, Building/Floor/Room/Device
+    ├── push/            # registro do token de push e convite para ativar os alertas
     ├── rbac/            # permissões por papel + PermissionGate
     ├── realtime/        # eventos device:status / device:online
     ├── utils/           # formatação pt-BR, mensagens de erro

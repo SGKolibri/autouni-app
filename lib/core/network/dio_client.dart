@@ -43,7 +43,3 @@ Dio buildAppDio({
 /// `Dio` cru (sem os interceptors da aplicação) para o fluxo de refresh —
 /// senão um 401 no próprio `/auth/refresh` dispararia refresh recursivo.
 Dio buildRefreshDio(AppConfig config) => Dio(_baseOptions(config));
-
-/// Monta o [TokenRefresher] HTTP padrão a partir da config.
-TokenRefresher buildTokenRefresher(AppConfig config) =>
-    HttpTokenRefresher(buildRefreshDio(config));

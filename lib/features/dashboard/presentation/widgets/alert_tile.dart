@@ -1,16 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../shared/design_system/design_system.dart';
-import '../../../../shared/models/notification_type.dart';
 import '../../../../shared/utils/formatters.dart';
+import '../../../../shared/widgets/notification_style.dart';
 import '../../domain/dashboard_models.dart';
-
-AppTone notificationTone(NotificationType type) => switch (type) {
-  NotificationType.info => AppTone.info,
-  NotificationType.warning => AppTone.warning,
-  NotificationType.error => AppTone.danger,
-  NotificationType.success => AppTone.success,
-};
 
 /// Linha de alerta recente: tipo, título, mensagem e horário. Não lidos em
 /// negrito.
@@ -25,7 +18,7 @@ class AlertTile extends StatelessWidget {
     final tone = notificationTone(alert.type);
     final createdAt = alert.createdAt;
     return ListTile(
-      leading: Icon(_icon, color: tone.resolve(context)),
+      leading: Icon(notificationIcon(alert.type), color: tone.resolve(context)),
       title: Text(
         alert.title,
         maxLines: 1,
@@ -42,11 +35,4 @@ class AlertTile extends StatelessWidget {
           : Text(formatClock(createdAt), style: theme.textTheme.labelSmall),
     );
   }
-
-  IconData get _icon => switch (alert.type) {
-    NotificationType.info => Icons.info_outline,
-    NotificationType.warning => Icons.warning_amber_rounded,
-    NotificationType.error => Icons.error_outline,
-    NotificationType.success => Icons.check_circle_outline,
-  };
 }

@@ -21,6 +21,32 @@ extension ApiClient on Dio {
   Future<Object?> deleteJson(String path, {Object? data}) =>
       _send(() => delete<dynamic>(path, data: data));
 
+  /// Baixa um arquivo binário. O nome vem do `Content-Disposition`, quando
+  /// o backend manda.
+  Future<DownloadedFile> getBytes(String path) async {
+    try {
+      final response = await get<List<int>>(
+        path,
+        options: Options(
+          responseType: ResponseType.bytes,
+          // Relatórios grandes podem demorar mais que o timeout padrão.
+          receiveTimeout: const Duration(minutes: 2),
+        ),
+      );
+      return DownloadedFile(
+        bytes: response.data ?? const [],
+        fileName: fileNameFromDisposition(
+          response.headers.value('content-disposition'),
+        ),
+      );
+    } on DioException catch (error) {
+      final translated = error.error;
+      throw translated is ApiException
+          ? translated
+          : ApiException.fromDioException(error);
+    }
+  }
+
   Future<Object?> _send(Future<Response<dynamic>> Function() request) async {
     try {
       return (await request()).data;
@@ -31,6 +57,33 @@ extension ApiClient on Dio {
           : ApiException.fromDioException(error);
     }
   }
+}
+
+/// Arquivo recebido de [ApiClient.getBytes].
+class DownloadedFile {
+  const DownloadedFile({required this.bytes, this.fileName});
+
+  final List<int> bytes;
+  final String? fileName;
+}
+
+/// `attachment; filename="r1.pdf"` → `r1.pdf`. Só o nome (sem pastas).
+String? fileNameFromDisposition(String? header) {
+  if (header == null) return null;
+  final match = RegExp(
+    r'''filename\*?=(?:UTF-8'')?"?([^";]+)"?''',
+    caseSensitive: false,
+  ).firstMatch(header);
+  final raw = match?.group(1)?.trim();
+  if (raw == null || raw.isEmpty) return null;
+  String decoded;
+  try {
+    decoded = Uri.decodeComponent(raw);
+  } on ArgumentError {
+    decoded = raw;
+  }
+  final name = decoded.split(RegExp(r'[/\\]')).last;
+  return name.isEmpty ? null : name;
 }
 
 /// Lê um objeto JSON com [fromJson]; formato inesperado (campo ausente,

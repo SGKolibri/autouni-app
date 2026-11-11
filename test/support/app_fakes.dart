@@ -6,6 +6,8 @@ import 'package:autouni_app/features/dashboard/data/dashboard_repository.dart';
 import 'package:autouni_app/features/dashboard/domain/dashboard_models.dart';
 import 'package:autouni_app/features/energy/data/energy_repository.dart';
 import 'package:autouni_app/features/energy/domain/energy_models.dart';
+import 'package:autouni_app/features/notifications/data/notifications_repository.dart';
+import 'package:autouni_app/features/notifications/domain/app_notification.dart';
 import 'package:mocktail/mocktail.dart';
 
 /// Dashboard vazio, para testes do app inteiro que não tratam do dashboard.
@@ -52,4 +54,12 @@ class EmptyEnergyRepository implements EnergyRepository {
       ),
     ),
   );
+}
+
+/// Nenhuma notificação.
+class EmptyNotificationsRepository extends Mock
+    implements NotificationsRepository {
+  @override
+  Stream<Cached<List<AppNotification>>> watchMine() =>
+      Stream.value(const Cached(<AppNotification>[]));
 }

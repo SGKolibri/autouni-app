@@ -25,6 +25,7 @@ List<RouteBase> environmentsRoutes() => [
               buildingId: state.pathParameters['buildingId']!,
               floorId: state.pathParameters['floorId']!,
               roomId: state.pathParameters['roomId']!,
+              focusDeviceId: state.uri.queryParameters['device'],
             ),
           ),
         ],

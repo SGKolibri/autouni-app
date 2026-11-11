@@ -8,6 +8,7 @@ import 'package:autouni_app/features/environments/data/environments_repository.d
 import 'package:autouni_app/features/environments/presentation/pages/room_detail_page.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:autouni_app/shared/devices/device_commands.dart';
+import 'package:autouni_app/shared/devices/device_detail_sheet.dart';
 import 'package:autouni_app/shared/devices/device_repository.dart';
 import 'package:autouni_app/shared/devices/live_device_row.dart';
 import 'package:autouni_app/shared/models/campus/campus_models.dart';
@@ -68,6 +69,7 @@ void main() {
   Future<void> pumpPage(
     WidgetTester tester, {
     UserRole role = UserRole.technician,
+    String? focusDeviceId,
   }) async {
     // Tela alta: a lista inteira cabe sem rolar.
     tester.view.physicalSize = const Size(800, 2000);
@@ -78,10 +80,11 @@ void main() {
       routes: [
         GoRoute(
           path: '/room',
-          builder: (_, _) => const RoomDetailPage(
+          builder: (_, _) => RoomDetailPage(
             buildingId: 'b1',
             floorId: 'f1',
             roomId: 'r1',
+            focusDeviceId: focusDeviceId,
           ),
         ),
       ],
@@ -100,6 +103,35 @@ void main() {
 
   String kpi(WidgetTester tester, String label) =>
       tester.widget<KpiCard>(find.widgetWithText(KpiCard, label)).value;
+
+  testWidgets('deep link de dispositivo abre a ficha dele (S6-T2)', (
+    tester,
+  ) async {
+    await pumpPage(tester, focusDeviceId: 'd3');
+
+    expect(find.byType(DeviceDetailSheet), findsOneWidget);
+    expect(
+      tester
+          .widget<DeviceDetailSheet>(find.byType(DeviceDetailSheet))
+          .device
+          .id,
+      'd3',
+    );
+  });
+
+  testWidgets('sem deep link, não abre ficha', (tester) async {
+    await pumpPage(tester);
+
+    expect(find.byType(DeviceDetailSheet), findsNothing);
+  });
+
+  testWidgets('dispositivo que não é desta sala não abre ficha', (
+    tester,
+  ) async {
+    await pumpPage(tester, focusDeviceId: 'outro');
+
+    expect(find.byType(DeviceDetailSheet), findsNothing);
+  });
 
   testWidgets('mostra os KPIs e a lista de dispositivos', (tester) async {
     await pumpPage(tester);

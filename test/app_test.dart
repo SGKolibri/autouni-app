@@ -5,6 +5,7 @@ import 'package:autouni_app/core/config/app_config_provider.dart';
 import 'package:autouni_app/core/cache/cache_providers.dart';
 import 'package:autouni_app/core/cache/local_cache.dart';
 import 'package:autouni_app/core/config/flavor.dart';
+import 'package:autouni_app/core/preferences/app_preferences.dart';
 import 'package:autouni_app/core/realtime/realtime_providers.dart';
 import 'package:autouni_app/features/auth/data/auth_data_providers.dart';
 import 'package:autouni_app/features/auth/domain/models/user.dart';
@@ -123,6 +124,35 @@ void main() {
       expect(find.text('DEV'), findsOneWidget);
     });
 
+    testWidgets('segue o tema escolhido nos Ajustes e fala pt-BR', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appConfigProvider.overrideWithValue(
+              AppConfig.forFlavor(Flavor.prod),
+            ),
+            authRepositoryProvider.overrideWithValue(repository),
+            realtimeClientProvider.overrideWithValue(realtime),
+            dashboardRepositoryProvider.overrideWithValue(
+              EmptyDashboardRepository(),
+            ),
+            preferencesStoreProvider.overrideWithValue(
+              InMemoryPreferencesStore(
+                const AppPreferences(themeMode: ThemeMode.dark),
+              ),
+            ),
+          ],
+          child: const AutoUniApp(),
+        ),
+      );
+
+      final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(app.themeMode, ThemeMode.dark);
+      expect(app.locale, const Locale('pt', 'BR'));
+    });
+
     testWidgets('usa os temas claro e escuro do design system', (tester) async {
       await tester.pumpWidget(appWith(AppConfig.forFlavor(Flavor.prod)));
 
@@ -209,6 +239,10 @@ void main() {
       tester,
     ) async {
       final push = _MockPushMessaging();
+      when(() => push.onMessageOpened).thenAnswer((_) => const Stream.empty());
+      when(() => push.onForegroundMessage)
+          .thenAnswer((_) => const Stream.empty());
+      when(() => push.initialMessage()).thenAnswer((_) async => null);
       await tester.pumpWidget(
         buildAppRoot(AppConfig.forFlavor(Flavor.prod), push: push),
       );
@@ -221,8 +255,12 @@ void main() {
         container.read(pushPromptStoreProvider),
         isA<SecurePushPromptStore>(),
       );
-      // deslogado: não pergunta nada ao sistema
-      verifyZeroInteractions(push);
+      await tester.pumpAndSettle();
+      // deslogado: só escuta pushes tocados; não pede permissão nem token
+      verifyNever(() => push.permission());
+      verifyNever(() => push.requestPermission());
+      verifyNever(() => push.getToken());
+      verify(() => push.initialMessage()).called(1);
     });
   });
 }

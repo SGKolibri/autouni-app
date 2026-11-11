@@ -103,6 +103,74 @@ void main() {
     });
   });
 
+  group('mensagens', () {
+    const remote = RemoteMessage(
+      notification: RemoteNotification(title: 'Consumo alto', body: 'Bloco A'),
+      data: {'notificationId': 'n1', 'type': 'WARNING', 'link': '/devices/d1'},
+    );
+    const expected = PushMessage(
+      title: 'Consumo alto',
+      body: 'Bloco A',
+      notificationId: 'n1',
+      link: '/devices/d1',
+    );
+
+    test('lê notification + data do backend', () {
+      expect(FirebasePushMessaging.toPushMessage(remote), expected);
+    });
+
+    test('só data: título e corpo vêm de data; link vazio vira null', () {
+      expect(
+        FirebasePushMessaging.toPushMessage(
+          const RemoteMessage(
+            data: {
+              'title': 'T',
+              'body': 'B',
+              'notificationId': 'n2',
+              'link': '',
+            },
+          ),
+        ),
+        const PushMessage(title: 'T', body: 'B', notificationId: 'n2'),
+      );
+    });
+
+    test('repassa os pushes com o app aberto e os tocados', () async {
+      final foreground = StreamController<RemoteMessage>();
+      final opened = StreamController<RemoteMessage>();
+      addTearDown(foreground.close);
+      addTearDown(opened.close);
+      messaging = FirebasePushMessaging(
+        firebase,
+        onMessage: foreground.stream,
+        onMessageOpenedApp: opened.stream,
+      );
+
+      final first = messaging.onForegroundMessage.first;
+      foreground.add(remote);
+      expect(await first, expected);
+
+      final tapped = messaging.onMessageOpened.first;
+      opened.add(remote);
+      expect(await tapped, expected);
+    });
+
+    test('push que abriu o app fechado', () async {
+      when(() => firebase.getInitialMessage()).thenAnswer((_) async => remote);
+
+      expect(await messaging.initialMessage(), expected);
+    });
+
+    test('sem push inicial, ou falha do plugin, devolve null', () async {
+      when(() => firebase.getInitialMessage()).thenAnswer((_) async => null);
+      expect(await messaging.initialMessage(), isNull);
+
+      when(() => firebase.getInitialMessage())
+          .thenThrow(FirebaseException(plugin: 'messaging'));
+      expect(await messaging.initialMessage(), isNull);
+    });
+  });
+
   group('initFirebasePush', () {
     const config = FirebaseConfig(
       apiKey: 'key',

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:autouni_app/core/network/api_exception.dart';
+import 'package:autouni_app/core/preferences/app_preferences.dart';
 import 'package:autouni_app/core/push/push_messaging.dart';
 import 'package:autouni_app/core/push/push_providers.dart';
 import 'package:autouni_app/core/session/session_hooks.dart';
@@ -35,9 +36,12 @@ void main() {
 
   setUpAll(() => registerFallbackValue(PushPlatform.android));
 
+  late InMemoryPreferencesStore preferences;
+
   ProviderContainer build({bool withPush = true}) {
     final c = ProviderContainer.test(
       overrides: [
+        preferencesStoreProvider.overrideWithValue(preferences),
         pushMessagingProvider.overrideWithValue(withPush ? messaging : null),
         pushTokenRepositoryProvider.overrideWithValue(repository),
         pushPromptStoreProvider.overrideWithValue(store),
@@ -61,6 +65,7 @@ void main() {
     messaging = _MockMessaging();
     repository = _MockRepository();
     store = InMemoryPushPromptStore();
+    preferences = InMemoryPreferencesStore();
     refresh = StreamController<String>.broadcast();
     when(() => messaging.getToken()).thenAnswer((_) async => 'fcm-1');
     when(() => messaging.onTokenRefresh).thenAnswer((_) => refresh.stream);
@@ -309,6 +314,80 @@ void main() {
 
       verifyNever(() => repository.unregister(any()));
       verifyNever(() => messaging.deleteToken());
+    });
+  });
+
+  group('preferência de push nos Ajustes (S6-T5)', () {
+    test('desligada: não registra nem mostra convite', () async {
+      preferences = InMemoryPreferencesStore(
+        const AppPreferences(pushEnabled: false),
+      );
+      permissionIs(PushPermission.granted);
+      container = build();
+      await pumpEventQueue();
+
+      expect(status(), PushStatus.off);
+      verifyNever(() => repository.register(any(), any()));
+      verifyNever(() => messaging.permission());
+    });
+
+    test('desligar remove o token no backend e no FCM e grava', () async {
+      permissionIs(PushPermission.granted);
+      container = build();
+      await pumpEventQueue();
+      expect(status(), PushStatus.enabled);
+
+      await controller().setEnabled(false);
+
+      expect(status(), PushStatus.off);
+      verify(() => repository.unregister('fcm-1')).called(1);
+      verify(() => messaging.deleteToken()).called(1);
+      expect(preferences.load().pushEnabled, isFalse);
+    });
+
+    test('religar com permissão dada registra de novo', () async {
+      preferences = InMemoryPreferencesStore(
+        const AppPreferences(pushEnabled: false),
+      );
+      permissionIs(PushPermission.granted);
+      container = build();
+      await pumpEventQueue();
+
+      await controller().setEnabled(true);
+
+      expect(status(), PushStatus.enabled);
+      verify(() => repository.register('fcm-1', PushPlatform.android))
+          .called(1);
+      expect(preferences.load().pushEnabled, isTrue);
+    });
+
+    test('religar sem resposta do sistema abre o prompt direto', () async {
+      preferences = InMemoryPreferencesStore(
+        const AppPreferences(pushEnabled: false),
+      );
+      permissionIs(PushPermission.notDetermined);
+      when(() => messaging.requestPermission())
+          .thenAnswer((_) async => PushPermission.granted);
+      container = build();
+      await pumpEventQueue();
+
+      await controller().setEnabled(true);
+
+      verify(() => messaging.requestPermission()).called(1);
+      expect(status(), PushStatus.enabled);
+    });
+
+    test('religar com permissão negada no sistema fica negado', () async {
+      preferences = InMemoryPreferencesStore(
+        const AppPreferences(pushEnabled: false),
+      );
+      permissionIs(PushPermission.denied);
+      container = build();
+      await pumpEventQueue();
+
+      await controller().setEnabled(true);
+
+      expect(status(), PushStatus.denied);
     });
   });
 }

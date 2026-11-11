@@ -106,9 +106,13 @@ class DeviceRow extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
-            Switch(
-              value: active,
-              onChanged: isOffline || busy ? null : onToggle,
+            // Sem rótulo, o leitor de tela anunciaria só "interruptor".
+            Semantics(
+              label: isOffline ? '$name (offline)' : name,
+              child: Switch(
+                value: active,
+                onChanged: isOffline || busy ? null : onToggle,
+              ),
             ),
           ],
         ),

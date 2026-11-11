@@ -31,12 +31,6 @@ class DeviceOverride {
     intensity: patch.intensity ?? intensity,
     temperature: patch.temperature ?? temperature,
   );
-
-  /// Só os ajustes (o backend não persiste brilho nem temperatura, então eles
-  /// sobrevivem a um recarregamento).
-  DeviceOverride? get settingsOnly => intensity == null && temperature == null
-      ? null
-      : DeviceOverride(intensity: intensity, temperature: temperature);
 }
 
 /// Camada "ao vivo" sobre os dispositivos carregados das telas.
@@ -179,20 +173,26 @@ class DeviceLiveState extends Notifier<LiveDevices> {
     );
   }
 
-  /// Dados frescos da rede chegaram: descarta as alterações de estado já
-  /// refletidas neles (as de dispositivos com comando pendente ficam).
+  /// Dados frescos da rede chegaram: o estado deles passa a valer em todas
+  /// as telas.
+  ///
+  /// Não basta descartar as alterações conhecidas: outras telas podem estar
+  /// com dados mais antigos (o Início carregado antes de um comando dado na
+  /// sala) e voltariam a mostrar o estado velho. Dispositivos com comando
+  /// pendente ficam como estão; brilho e temperatura (que o backend não
+  /// guarda) também.
   void reconcile(Iterable<Device> fresh) {
     final overrides = {...state.overrides};
     var changed = false;
     for (final device in fresh) {
-      final current = overrides[device.id];
-      if (current == null || state.isPending(device.id)) continue;
-      final kept = current.settingsOnly;
-      if (kept == null) {
-        overrides.remove(device.id);
-      } else {
-        overrides[device.id] = kept;
+      if (state.isPending(device.id)) continue;
+      final current = overrides[device.id] ?? const DeviceOverride();
+      if (current.status == device.status && current.online == device.online) {
+        continue;
       }
+      overrides[device.id] = current.merge(
+        DeviceOverride(status: device.status, online: device.online),
+      );
       changed = true;
     }
     if (changed) {

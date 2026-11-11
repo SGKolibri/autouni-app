@@ -13,9 +13,32 @@ import 'push_messaging.dart';
 /// envia com `sendEachForMulticast`, que só aceita tokens de registro —
 /// migrar para FID tem de ser feito nos dois lados juntos.
 class FirebasePushMessaging implements PushMessaging {
-  FirebasePushMessaging(this._messaging);
+  /// [onMessage] e [onMessageOpenedApp] são os streams estáticos do plugin;
+  /// injetáveis para teste.
+  FirebasePushMessaging(
+    this._messaging, {
+    this._onMessage,
+    this._onMessageOpenedApp,
+  });
 
   final FirebaseMessaging _messaging;
+  final Stream<RemoteMessage>? _onMessage;
+  final Stream<RemoteMessage>? _onMessageOpenedApp;
+
+  /// Lê o que o backend envia (S5-T6): `notification` + `data`.
+  static PushMessage toPushMessage(RemoteMessage message) {
+    String? data(String key) {
+      final value = message.data[key];
+      return value is String && value.isNotEmpty ? value : null;
+    }
+
+    return PushMessage(
+      title: message.notification?.title ?? data('title'),
+      body: message.notification?.body ?? data('body'),
+      notificationId: data('notificationId'),
+      link: data('link'),
+    );
+  }
 
   static PushPermission _map(NotificationSettings settings) =>
       switch (settings.authorizationStatus) {
@@ -50,6 +73,26 @@ class FirebasePushMessaging implements PushMessaging {
   @override
   // ignore: deprecated_member_use
   Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
+
+  @override
+  Stream<PushMessage> get onForegroundMessage =>
+      (_onMessage ?? FirebaseMessaging.onMessage).map(toPushMessage);
+
+  @override
+  Stream<PushMessage> get onMessageOpened =>
+      (_onMessageOpenedApp ?? FirebaseMessaging.onMessageOpenedApp).map(
+        toPushMessage,
+      );
+
+  @override
+  Future<PushMessage?> initialMessage() async {
+    try {
+      final message = await _messaging.getInitialMessage();
+      return message == null ? null : toPushMessage(message);
+    } on Exception {
+      return null;
+    }
+  }
 
   @override
   Future<void> deleteToken() async {

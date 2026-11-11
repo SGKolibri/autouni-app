@@ -211,6 +211,21 @@ void main() {
     });
   }
 
+  testWidgets('deep link com ?device abre a sala com a ficha do dispositivo', (
+    tester,
+  ) async {
+    await pumpEnvironments(
+      tester,
+      initialLocation: AppPaths.room('b1', 'f1', 'r1', deviceId: 'd1'),
+    );
+
+    expect(find.byType(RoomDetailPage), findsOneWidget);
+    expect(
+      tester.widget<RoomDetailPage>(find.byType(RoomDetailPage)).focusDeviceId,
+      'd1',
+    );
+  });
+
   testWidgets('o breadcrumb mostra o caminho completo e volta ao andar', (
     tester,
   ) async {

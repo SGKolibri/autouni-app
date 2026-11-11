@@ -125,6 +125,11 @@ class AuthController extends AsyncNotifier<User?> {
   ///
   /// Antes de tudo roda os ganchos de logout (ex.: remover o token de push
   /// no backend), enquanto o JWT ainda vale.
+  /// Atualiza o usuário da sessão (ex.: depois de editar o perfil).
+  void updateUser(User user) {
+    if (state.value?.id == user.id) state = AsyncData(user);
+  }
+
   Future<void> logout() async {
     await ref.read(logoutHooksProvider).run();
     if (!ref.mounted) return;

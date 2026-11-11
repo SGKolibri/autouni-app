@@ -5,6 +5,7 @@ import 'package:autouni_app/core/network/api_exception.dart';
 import 'package:autouni_app/core/realtime/realtime_client.dart';
 import 'package:autouni_app/core/realtime/realtime_providers.dart';
 import 'package:autouni_app/core/router/app_paths.dart';
+import 'package:autouni_app/core/router/tab_badges.dart';
 import 'package:autouni_app/features/dashboard/data/dashboard_repository.dart';
 import 'package:autouni_app/features/dashboard/domain/dashboard_models.dart';
 import 'package:autouni_app/features/dashboard/presentation/pages/dashboard_page.dart';
@@ -82,6 +83,7 @@ void main() {
   Future<GoRouter> pumpDashboard(
     WidgetTester tester, {
     PushStatus push = PushStatus.unavailable,
+    int? unreadAlerts,
   }) async {
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1;
@@ -96,6 +98,7 @@ void main() {
       overrides: [
         dashboardRepositoryProvider.overrideWithValue(repository),
         pushRegistrationProvider.overrideWith(() => _FixedPush(push)),
+        unreadAlertsCountProvider.overrideWithValue(unreadAlerts),
         deviceEventsProvider.overrideWithValue(events.stream),
         realtimeStatusProvider.overrideWithValue(
           RealtimeConnectionStatus.connected,
@@ -147,6 +150,14 @@ void main() {
     await pumpDashboard(tester, push: PushStatus.enabled);
 
     expect(find.byKey(const Key('push-prompt')), findsNothing);
+  });
+
+  testWidgets('alertas não lidos seguem a central quando ela já carregou', (
+    tester,
+  ) async {
+    await pumpDashboard(tester, unreadAlerts: 7);
+
+    expect(kpi(tester, 'Alertas não lidos'), '7');
   });
 
   testWidgets('donut com a distribuição de status', (tester) async {

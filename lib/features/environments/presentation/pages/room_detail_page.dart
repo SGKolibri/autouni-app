@@ -7,6 +7,7 @@ import '../../../../core/router/app_tab.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/devices/device_controller.dart';
 import '../../../../shared/devices/device_counts.dart';
+import '../../../../shared/devices/device_detail_sheet.dart';
 import '../../../../shared/devices/device_live_state.dart';
 import '../../../../shared/devices/live_device_row.dart';
 import '../../../../shared/models/campus/campus_models.dart';
@@ -25,12 +26,16 @@ class RoomDetailPage extends ConsumerWidget {
     required this.buildingId,
     required this.floorId,
     required this.roomId,
+    this.focusDeviceId,
     super.key,
   });
 
   final String buildingId;
   final String floorId;
   final String roomId;
+
+  /// Abre a ficha deste dispositivo ao carregar (deep link de notificação).
+  final String? focusDeviceId;
 
   Future<void> _turnOffAll(
     BuildContext context,
@@ -142,7 +147,7 @@ class RoomDetailPage extends ConsumerWidget {
               builder: (context, room) => RefreshIndicator(
                 onRefresh: () =>
                     ref.refresh(roomDetailsProvider(roomId).future),
-                child: _RoomContent(room: room),
+                child: _RoomContent(room: room, focusDeviceId: focusDeviceId),
               ),
             ),
           ),
@@ -153,9 +158,10 @@ class RoomDetailPage extends ConsumerWidget {
 }
 
 class _RoomContent extends ConsumerWidget {
-  const _RoomContent({required this.room});
+  const _RoomContent({required this.room, this.focusDeviceId});
 
   final Room room;
+  final String? focusDeviceId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -166,6 +172,8 @@ class _RoomContent extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpacing.xl),
       children: [
+        if (focusDeviceId != null)
+          _OpenDeviceOnce(deviceId: focusDeviceId!, devices: room.devices),
         Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: KpiGrid(
@@ -214,4 +222,34 @@ class _RoomContent extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Abre a ficha de [deviceId] uma única vez, depois do primeiro frame.
+class _OpenDeviceOnce extends StatefulWidget {
+  const _OpenDeviceOnce({required this.deviceId, required this.devices});
+
+  final String deviceId;
+  final List<Device> devices;
+
+  @override
+  State<_OpenDeviceOnce> createState() => _OpenDeviceOnceState();
+}
+
+class _OpenDeviceOnceState extends State<_OpenDeviceOnce> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final device in widget.devices) {
+        if (device.id == widget.deviceId) {
+          showDeviceDetailSheet(context, device);
+          return;
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

@@ -35,6 +35,31 @@ enum PushPlatform {
   static PushPlatform? get current => of(defaultTargetPlatform, isWeb: kIsWeb);
 }
 
+/// Um push recebido: o que aparece na bandeja e os dados do backend
+/// (`notificationId`, `type`, `link`).
+@immutable
+class PushMessage {
+  const PushMessage({this.title, this.body, this.notificationId, this.link});
+
+  final String? title;
+  final String? body;
+  final String? notificationId;
+
+  /// Destino no formato da API (ex.: `/devices/<id>`).
+  final String? link;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PushMessage &&
+      other.title == title &&
+      other.body == body &&
+      other.notificationId == notificationId &&
+      other.link == link;
+
+  @override
+  int get hashCode => Object.hash(title, body, notificationId, link);
+}
+
 /// O plugin de push (FCM) visto pelo app — isola o `firebase_messaging` para
 /// o resto do código (e os testes) não depender dele.
 abstract interface class PushMessaging {
@@ -51,4 +76,13 @@ abstract interface class PushMessaging {
 
   /// Invalida o token deste aparelho (logout): o FCM para de entregar nele.
   Future<void> deleteToken();
+
+  /// Push recebido com o app aberto (o sistema não mostra na bandeja).
+  Stream<PushMessage> get onForegroundMessage;
+
+  /// Push tocado na bandeja com o app em segundo plano.
+  Stream<PushMessage> get onMessageOpened;
+
+  /// O push tocado que abriu o app fechado, se houver (uma vez só).
+  Future<PushMessage?> initialMessage();
 }

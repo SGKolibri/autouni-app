@@ -1,21 +1,27 @@
 import 'package:autouni_app/core/router/app_router.dart';
 import 'package:autouni_app/core/router/app_tab.dart';
 import 'package:autouni_app/core/router/session_guard.dart';
+import 'package:autouni_app/core/router/tab_badges.dart';
 import 'package:autouni_app/core/router/splash_page.dart';
 import 'package:autouni_app/shared/design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 Future<GoRouter> _pumpRouter(
   WidgetTester tester, {
   String? initialLocation,
+  int? unreadAlerts,
 }) async {
   final router = createAppRouter(initialLocation: initialLocation);
   addTearDown(router.dispose);
 
   await tester.pumpWidget(
-    MaterialApp.router(theme: AppTheme.light(), routerConfig: router),
+    ProviderScope(
+      overrides: [unreadAlertsCountProvider.overrideWithValue(unreadAlerts)],
+      child: MaterialApp.router(theme: AppTheme.light(), routerConfig: router),
+    ),
   );
   await tester.pumpAndSettle();
   return router;
@@ -70,6 +76,30 @@ void main() {
 
       expect(find.byType(AppBottomNav), findsOneWidget);
       expect(find.byType(NavigationDestination), findsNWidgets(5));
+    });
+
+    testWidgets('a aba Alertas mostra o número de não lidos', (tester) async {
+      await _pumpRouter(tester, unreadAlerts: 3);
+
+      final badge = tester.widget<Badge>(find.byType(Badge).first);
+      expect((badge.label! as Text).data, '3');
+      expect(
+        find.ancestor(
+          of: find.text('3'),
+          matching: find.byType(NavigationDestination),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('sem não lidos (ou ainda sem saber), sem badge', (
+      tester,
+    ) async {
+      await _pumpRouter(tester, unreadAlerts: 0);
+      expect(find.byType(Badge), findsNothing);
+
+      await _pumpRouter(tester);
+      expect(find.byType(Badge), findsNothing);
     });
 
     for (final tab in AppTab.values) {
@@ -172,7 +202,12 @@ void main() {
       );
       addTearDown(router.dispose);
       await tester.pumpWidget(
-        MaterialApp.router(theme: AppTheme.light(), routerConfig: router),
+        ProviderScope(
+          child: MaterialApp.router(
+            theme: AppTheme.light(),
+            routerConfig: router,
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -206,7 +241,12 @@ void main() {
       );
       addTearDown(router.dispose);
       await tester.pumpWidget(
-        MaterialApp.router(theme: AppTheme.light(), routerConfig: router),
+        ProviderScope(
+          child: MaterialApp.router(
+            theme: AppTheme.light(),
+            routerConfig: router,
+          ),
+        ),
       );
       await tester.pump();
       return (router, session);

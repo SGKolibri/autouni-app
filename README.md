@@ -49,6 +49,23 @@ flutter test --update-goldens        # regenera goldens (só para mudança visua
 O gate de cobertura (`tool/coverage.dart`) conta **todo** o `lib/`: arquivos sem
 nenhum teste entram como 0%. O limiar é 80%.
 
+### Ponta a ponta e acessibilidade
+
+Os fluxos críticos (login, controlar dispositivo, push → deep link, VIEWER
+somente leitura, logout) rodam o app **inteiro** — interceptors, repositórios,
+providers e telas reais — contra um backend em memória
+(`test/support/e2e/fake_backend.dart`: HTTP, WebSocket e push). Eles estão
+escritos uma vez (`test/support/e2e/critical_flows.dart`) e rodam em dois
+lugares:
+
+```bash
+flutter test test/e2e                               # na VM (também roda na CI)
+flutter test integration_test -d <emulador|aparelho> # no Android/iOS de verdade
+```
+
+`test/a11y/` checa as diretrizes do Flutter nas telas principais (alvo de
+toque 48 dp/44 pt, alvos com rótulo para leitor de tela e contraste WCAG AA).
+
 Critérios de pronto e de entrada de tasks:
 [`docs/definition_of_ready_and_done.md`](docs/definition_of_ready_and_done.md).
 

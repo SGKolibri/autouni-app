@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_paths.dart';
 import '../../../../core/router/app_tab.dart';
+import '../../../../core/router/tab_badges.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/devices/device_counts.dart';
 import '../../../../shared/devices/device_live_state.dart';
@@ -127,7 +128,9 @@ class _DashboardContent extends ConsumerWidget {
               ),
               KpiCard(
                 label: 'Alertas não lidos',
-                value: '${overview.unreadAlerts}',
+                // a central (badge) é a fonte mais atual; sem ela, o Início
+                value:
+                    '${ref.watch(unreadAlertsCountProvider) ?? overview.unreadAlerts}',
                 icon: Icons.notifications_outlined,
                 onTap: () => context.go(AppTab.notifications.path),
               ),

@@ -24,6 +24,18 @@ void main() {
         expect(role.can(AppPermission.bulkControlDevices), isTrue);
       });
     }
+
+    test('só ADMIN e COORDINATOR alteram a configuração de alarmes', () {
+      expect(UserRole.admin.can(AppPermission.manageAlarmSettings), isTrue);
+      expect(
+        UserRole.coordinator.can(AppPermission.manageAlarmSettings),
+        isTrue,
+      );
+      expect(
+        UserRole.technician.can(AppPermission.manageAlarmSettings),
+        isFalse,
+      );
+    });
   });
 
   group('hasPermissionProvider', () {

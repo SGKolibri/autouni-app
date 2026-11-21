@@ -16,17 +16,18 @@ enum AppPermission {
 
   /// Gerar relatórios.
   generateReports,
+
+  /// Alterar a configuração de alarmes da organização (intervalo do
+  /// lembrete). Mesma regra do backend: só ADMIN e COORDINATOR.
+  manageAlarmSettings,
 }
 
 extension UserRolePermissions on UserRole {
-  /// O papel pode executar [permission]? VIEWER é somente leitura; os demais
-  /// papéis têm, por enquanto, as mesmas permissões no app.
+  /// O papel pode executar [permission]? VIEWER é somente leitura; TECHNICIAN
+  /// opera tudo menos a configuração de alarmes da organização.
   bool can(AppPermission permission) => switch (this) {
     UserRole.viewer => false,
-    UserRole.admin ||
-    UserRole.coordinator ||
-    UserRole.technician => _granted.contains(permission),
+    UserRole.admin || UserRole.coordinator => true,
+    UserRole.technician => permission != AppPermission.manageAlarmSettings,
   };
-
-  static const Set<AppPermission> _granted = {...AppPermission.values};
 }

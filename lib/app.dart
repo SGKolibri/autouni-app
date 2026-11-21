@@ -10,6 +10,7 @@ import 'features/auth/presentation/controllers/session_realtime_binding.dart';
 import 'routing/app_router_provider.dart';
 import 'routing/push_navigation.dart';
 import 'shared/push/push_registration.dart';
+import 'shared/realtime/telemetry_events.dart';
 import 'shared/design_system/design_system.dart';
 
 /// Raiz visual do app: tema do design system + shell de navegação (go_router).
@@ -45,6 +46,9 @@ class _AutoUniAppState extends ConsumerState<AutoUniApp> {
   @override
   Widget build(BuildContext context) {
     ref.watch(sessionRealtimeBindingProvider);
+    // Telemetria ao vivo (energia, gás, presença) acumula desde o login, não
+    // só enquanto uma tela a observa.
+    ref.watch(telemetryLiveProvider.select((_) => null));
     // Mantém o registro do token de push ligado à sessão (S6-T1).
     ref.watch(pushRegistrationProvider);
     // Toque no push abre o destino; push com o app aberto vira aviso (S6-T2).

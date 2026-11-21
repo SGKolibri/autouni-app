@@ -8,6 +8,7 @@ import '../../../../core/preferences/app_preferences.dart';
 import '../../../../core/router/app_paths.dart';
 import '../../../../shared/design_system/design_system.dart';
 import '../../../../shared/push/push_registration.dart';
+import '../../../notifications/presentation/widgets/alarm_reminder_tile.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/biometric_login_controller.dart';
 import '../controllers/profile_controller.dart';
@@ -176,6 +177,7 @@ class AccountSettingsPage extends ConsumerWidget {
                 ? null
                 : (value) => _togglePush(context, ref, value),
           ),
+          const AlarmReminderTile(),
           header('Aparência'),
           Padding(
             padding: const EdgeInsets.symmetric(

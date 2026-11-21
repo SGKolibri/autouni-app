@@ -13,6 +13,7 @@ import 'package:autouni_app/features/auth/domain/models/user.dart';
 import 'package:autouni_app/features/auth/domain/repositories/auth_repository.dart';
 import 'package:autouni_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:autouni_app/features/auth/presentation/pages/account_settings_page.dart';
+import 'package:autouni_app/features/notifications/data/alarm_settings_repository.dart';
 import 'package:autouni_app/shared/models/user_role.dart';
 import 'package:autouni_app/shared/push/push_registration.dart';
 import 'package:autouni_app/shared/push/push_token_repository.dart';
@@ -33,6 +34,14 @@ class _MockBiometrics extends Mock implements BiometricAuthenticator {}
 class _MockMessaging extends Mock implements PushMessaging {}
 
 class _MockTokens extends Mock implements PushTokenRepository {}
+
+class _FakeAlarmSettings implements AlarmSettingsRepository {
+  @override
+  Future<int> reminderMinutes() async => 5;
+
+  @override
+  Future<int> setReminderMinutes(int minutes) async => minutes;
+}
 
 const _user = User(
   id: 'u1',
@@ -79,6 +88,7 @@ void main() {
         pushMessagingProvider.overrideWithValue(withPush ? messaging : null),
         pushTokenRepositoryProvider.overrideWithValue(tokens),
         pushPlatformProvider.overrideWithValue(PushPlatform.android),
+        alarmSettingsRepositoryProvider.overrideWithValue(_FakeAlarmSettings()),
         // Como no bootstrap: o push segue o usuário da sessão.
         sessionUserIdProvider.overrideWith(
           (ref) => ref.watch(authControllerProvider).value?.id,

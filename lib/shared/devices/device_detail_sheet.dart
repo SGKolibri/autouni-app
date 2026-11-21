@@ -11,6 +11,7 @@ import 'device_controller.dart';
 import 'device_limits.dart';
 import 'device_live_state.dart';
 import 'device_presentation.dart';
+import 'device_telemetry_panel.dart';
 import 'live_device_row.dart';
 
 /// Abre o detalhe de [device] com os controles contextuais.
@@ -78,6 +79,7 @@ class DeviceDetailSheet extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
+            DeviceTelemetryPanel(deviceId: device.id),
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,

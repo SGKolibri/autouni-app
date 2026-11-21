@@ -17,6 +17,7 @@ import '../../../../shared/utils/formatters.dart';
 import '../../../../shared/widgets/cached_async_view.dart';
 import '../../../../shared/widgets/live_top_bar.dart';
 import '../../../../shared/widgets/realtime_status_banner.dart';
+import '../../../../shared/devices/device_telemetry_panel.dart';
 import '../providers/environments_providers.dart';
 import '../widgets/location_breadcrumb.dart';
 
@@ -174,6 +175,18 @@ class _RoomContent extends ConsumerWidget {
       children: [
         if (focusDeviceId != null)
           _OpenDeviceOnce(deviceId: focusDeviceId!, devices: room.devices),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.lg,
+            AppSpacing.lg,
+            0,
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: RoomOccupancyChip(roomId: room.id),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: KpiGrid(
